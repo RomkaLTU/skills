@@ -1,0 +1,22 @@
+{
+  "tracker": {
+    "type": "manual",
+    "ticketPrefix": "TASK"
+  },
+  "git": {
+    "baseBranch": "main",
+    "remote": "origin"
+  },
+  "pullRequest": {
+    "automation": "manual"
+  },
+  "requireTicket": true,
+  "skillSelection": {
+    "askBeforeImplementation": true
+  },
+  "timeTracking": {
+    "enabled": true,
+    "outputFormat": "default",
+    "storage": "repo"
+  }
+}

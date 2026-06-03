@@ -1,0 +1,44 @@
+{
+  "tracker": {
+    "type": "linear",
+    "team": "MLG",
+    "project": "MLG",
+    "ticketPrefix": "MLG",
+    "ticketIdPattern": "^MLG-\\d+$",
+    "statuses": {
+      "inProgress": "In Progress",
+      "inReview": "In Review",
+      "done": "Done"
+    }
+  },
+  "git": {
+    "baseBranch": "main",
+    "remote": "origin",
+    "branchPrefixes": {
+      "feature": "feature",
+      "fix": "fix",
+      "chore": "chore",
+      "refactor": "refactor"
+    }
+  },
+  "pullRequest": {
+    "automation": "gh",
+    "reviewers": [
+      { "email": "hello@codesomelabs.com", "githubHandle": "RomkaLTU" }
+    ],
+    "skipSelfReview": true
+  },
+  "commitSkill": {
+    "name": "commit",
+    "userInvokedOnly": true
+  },
+  "requireTicket": true,
+  "skillSelection": {
+    "askBeforeImplementation": true
+  },
+  "timeTracking": {
+    "enabled": true,
+    "outputFormat": "default",
+    "storage": "repo"
+  }
+}
