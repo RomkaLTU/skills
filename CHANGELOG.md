@@ -2,6 +2,18 @@
 
 ## dev-flow
 
+### 1.1.0
+- Commit, push, and PR creation now **hand off to the user by default** instead of
+  running automatically. After implementation the agent prepares everything (commit
+  message, push command, PR title/body, base-branch checks) and stops at each write
+  step for the user to run manually — commit → push → PR.
+- New `handoff` config block (`commit`, `push`, `pullRequest`), each defaulting to
+  `true` (hand off). Set a key to `false` to let the agent perform that step itself;
+  set all three false to restore the old fully-automatic flow.
+- Generalizes the old commit-only `commitSkill.userInvokedOnly` flag, which is now
+  the legacy equivalent of `handoff.commit: true` (and is the default regardless).
+- Setup wizard now asks whether to use handoff (default) or automatic write steps.
+
 ### 1.0.1
 - Fix invalid YAML frontmatter in `SKILL.md`: the `description` was an unquoted
   plain scalar containing `": "` sequences, which broke `js-yaml` parsing and made
