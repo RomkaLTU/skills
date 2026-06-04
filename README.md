@@ -17,6 +17,20 @@ You already use this for your other skills; nothing new to learn.
 npx skills add RomkaLTU/skills@dev-flow -g -y
 ```
 
+`-g` installs globally into **every** agent the CLI detects. If you hit
+`<agent> does not support global skill installation` (e.g. PromptScript, which is
+project-only), either scope the install to a global-capable agent:
+
+```bash
+npx skills add RomkaLTU/skills@dev-flow -g -a claude-code -y   # -a is repeatable
+```
+
+or install project-locally by dropping `-g` (run from the repo root):
+
+```bash
+npx skills add RomkaLTU/skills@dev-flow -y
+```
+
 Keeping current:
 
 ```bash
