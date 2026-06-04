@@ -1,6 +1,6 @@
 # Commit conventions
 
-Use these conventions when crafting commits directly inside this skill (Step 6) — i.e. when `commitSkill.userInvokedOnly` is not set, or no commit skill is configured for the project.
+These conventions govern the commit *message* in both modes of Step 6: when you draft the suggested commit(s) for the user to run (the default, `handoff.commit` true), and when you commit directly (`handoff.commit: false`). Either way the message looks the same — the only difference is who runs `git commit`.
 
 **First, look at the project's existing commits.** If `git log -20 --oneline` shows a different style (different format, different types, different trailer), match what the project does. These defaults are the fallback — they shouldn't override a project's lived convention.
 
@@ -75,7 +75,9 @@ refactor(orders): extract shipping calculation to service
 
 ## When to defer to user invocation
 
-If config has `commitSkill.userInvokedOnly: true`:
-- Do **not** craft commits directly.
-- Pause and tell the user: "Implementation is ready. Please run `/{commitSkill.name} {TICKET-ID}` yourself."
-- The gate exists deliberately (usually to enforce explicit human authorization before committing) — respect it. Don't try to work around it with a hand-crafted `git commit`.
+By default (`handoff.commit` true or absent) the user runs the commit, not you:
+- Do **not** run `git commit` or invoke the commit skill yourself.
+- Pause and tell the user implementation is ready, pointing at the commit skill if one is configured: "Please run `/{commitSkill.name} {TICKET-ID}` yourself" — and present the suggested commit(s) (drafted with the conventions above) so they have a starting point.
+- This gate enforces explicit human authorization before any commit/push/PR. Respect it — don't work around it with a hand-crafted `git commit`.
+
+`commitSkill.userInvokedOnly: true` is the legacy, commit-only equivalent of `handoff.commit: true`; if either is set (or both absent, since handoff defaults on), defer. Only `handoff.commit: false` lets you commit directly.

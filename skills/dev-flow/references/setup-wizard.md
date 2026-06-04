@@ -111,16 +111,24 @@ If `manual`:
 - Skip reviewer questions (those go inline in the draft body for the user to handle).
 - Read `references/manual-pr.md` for the workflow contract.
 
-## Step 5 — Commit skill
+## Step 5 — Commit skill & write-step handoff
 
-If a project commit skill was detected:
+First, the commit skill. If a project commit skill was detected:
 
-> "I see this project has its own `commit` skill `<gated: yes/no>`. Defer commits to it (you'll run `/commit <ticket>` yourself), or have me craft commits directly using Conventional Commits format?"
+> "I see this project has its own `commit` skill `<gated: yes/no>`. I'll point you at it when it's time to commit."
 
-Default proposal:
-- Detected and gated → propose `userInvokedOnly: true` (defer)
-- Detected and not gated → propose ungated, ask user
-- Not detected → no `commitSkill` block in config; assistant crafts commits directly per `references/commit-conventions.md`.
+Record `commitSkill.name` if one exists (it's used in the handoff message). If none is detected, omit the `commitSkill` block — the assistant drafts commit messages per `references/commit-conventions.md`.
+
+Then, the handoff. Ask:
+
+> "When implementation is done, who runs the write steps?
+> 1. **handoff (default)** — I prepare the commit message, push command, and PR draft, then hand each step back to you to run manually (commit → push → PR). Nothing is committed, pushed, or PR'd without you.
+> 2. **automatic** — I commit, push, and open the PR myself."
+
+Default proposal: `handoff` (all three true). This is the safe default — explicit human authorization before every git write.
+
+- Choosing **handoff** → omit the `handoff` block (it defaults on) *or* write it explicitly for clarity. Optionally let the user pick per-step (e.g. auto-commit but hand off the PR) and write only the keys they flip.
+- Choosing **automatic** → write `"handoff": { "commit": false, "push": false, "pullRequest": false }`.
 
 ## Step 6 — Skill selection prompt
 
@@ -183,12 +191,15 @@ Confirm:
     "reviewers": [{ "email": "hello@codesomelabs.com", "githubHandle": "RomkaLTU" }],
     "skipSelfReview": true
   },
-  "commitSkill": { "name": "commit", "userInvokedOnly": true },
+  "commitSkill": { "name": "commit" },
+  "handoff": { "commit": true, "push": true, "pullRequest": true },
   "requireTicket": true,
   "skillSelection": { "askBeforeImplementation": true },
   "timeTracking": { "enabled": true, "outputFormat": "default", "storage": "repo" }
 }
 ```
+
+(The `handoff` block above is the default and could be omitted — it's spelled out here so it's discoverable. Drop in `"handoff": { "commit": false, "push": false, "pullRequest": false }` for the fully-automatic flow.)
 
 **Project with no Linear, no `gh` (e.g. self-hosted Gitea + offline tracker):**
 

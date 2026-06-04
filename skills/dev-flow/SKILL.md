@@ -1,6 +1,6 @@
 ---
 name: dev-flow
-version: 1.0.1
+version: 1.1.0
 description: >-
   Run a project's ticket-driven git workflow end-to-end — branch from the base branch, tie every branch to a project-management ticket (Linear, Jira, GitHub Issues, or none), name branches and commits correctly, open the PR against the right base with verification, and move the ticket through In Progress / In Review / Done. Also kicks off work from an execution plan: hand it a plan file (e.g. `tasks/<branch>/todo.md`), a spec/PRD, or pasted plan text and it resolves a single ticket (one you give, one it offers to create in the tracker, or ticket-free after you confirm), then creates the branch and starts the work. Use whenever the user wants to start work on a ticket (by id or bare number), kick off a branch from a plan / spec / PRD / todo file, open a PR for a feature or fix, sync ticket status with branch state (e.g. close out after a merge), or asks "what branch should I use?" — even if they don't mention git, branches, or PRs. Also use it to set up or reconfigure THIS skill's own config at `.dev-flow/config.json` (the tracker, base branch, and PR / commit / time-tracking settings): when that file is missing it runs an auto-detecting setup wizard before starting work, and it handles explicit "set up the ticket flow / dev-flow config" or "change the base branch / tracker" requests. Don't use it for reviewing an existing PR's code, a one-off commit on a branch you've already created, breaking a plan into many separate issues, writing a PRD, configuring CI / GitHub Actions workflows, promoting one long-lived branch into another (a release or integration merge between standing branches), or general git how-to questions — those belong to other tools.
 ---
@@ -63,6 +63,14 @@ All fields optional except `tracker.type`. Sensible defaults are noted.
   "commitSkill": {
     "name": "commit",                       // the project's commit slash-command, if any
   },
+  "handoff": {                              // who runs the write steps once implementation is done.
+                                            // Each defaults to true: the agent PREPARES the step
+                                            // (message, push command, PR draft, base checks) but the
+                                            // USER runs it. Set a key to false to let the agent do it.
+    "commit":      true,                    // true (default) = user commits (e.g. via the commit skill)
+    "push":        true,                    // true (default) = user pushes the branch
+    "pullRequest": true                     // true (default) = user opens the PR; false = agent runs `gh pr create`
+  },
   "requireTicket": true,                    // false = allow no-ticket branches by default
   "skillSelection": {
     "askBeforeImplementation": true         // false = skip the skill-picker prompt
@@ -76,6 +84,8 @@ All fields optional except `tracker.type`. Sensible defaults are noted.
 ```
 
 Once loaded, hold these values in your head for the rest of the session — they drive every decision below.
+
+**Handoff is the default.** If the `handoff` block is absent, treat all three keys as `true`: the agent never commits, pushes, or opens a PR on its own. It does all the preparation — crafts the commit, runs the base-branch checks, drafts the PR title/body, renders the exact commands — then **stops and hands each write step back to the user to run manually**, in order: commit → push → PR. Only a key explicitly set to `false` lets the agent perform that step itself (the old fully-automatic behavior). This is enforced in Steps 6–7 below.
 
 See `assets/example-config.json` for a fully filled-out example.
 
@@ -269,27 +279,79 @@ The whole point of having many specialist skills is that they're focused — eac
 
 ## Step 6 — Commit
 
-The full conventions live in `references/commit-conventions.md` — read it before crafting any commit. The short version:
+The full conventions live in `references/commit-conventions.md` — read it before planning any commit.
 
-If the project defines a `commitSkill.name`, invoke that skill via the `Skill` tool to perform the commit. Otherwise, craft the commit directly.
+**Default (`handoff.commit` true or absent): the user commits, not you.** When implementation is done, don't run `git commit` or invoke the commit skill yourself. Instead:
 
-Follow `references/commit-conventions.md`. The high-level rules:
+1. Stage nothing automatically and run no commit. Work out the atomic, dependency-ordered commit plan and the message(s) per the conventions below, so the user isn't starting from scratch.
+2. **Hand off to the user.** Tell them implementation is ready and ask them to commit manually. If the project defines `commitSkill.name`, point at it explicitly:
+
+   > Implementation is ready. To commit, run your commit skill:
+   > `/<commitSkill.name> <TICKET-ID>`
+   >
+   > Suggested commit(s):
+   > - `<type>(<scope>): <subject>`  (Refs: <TICKET-ID>)
+   >
+   > I won't commit, push, or open the PR automatically — tell me when you're ready for the next step.
+
+   With no `commitSkill.name`, drop the slash-command line and just present the suggested commit(s) for the user to apply.
+3. **Wait.** Don't proceed to Step 7 until the user confirms the commit is done (or tells you to go ahead).
+
+**Only when `handoff.commit: false`** does the agent perform the commit itself — invoke `commitSkill.name` via the `Skill` tool if defined, otherwise craft the commit directly.
+
+Either way, the commit content follows `references/commit-conventions.md`. The high-level rules:
 
 - **Atomic, dependency-ordered commits** — one concern per commit, foundations before consumers, refactors separated from features.
 - **Conventional Commits format** by default: `<type>(<scope>): <subject>` + optional body + `Refs: <TICKET-ID>` trailer. Match the project's existing style if `git log` shows something different.
 - **Imperative mood**, subject under 72 chars, body wrapped at 100.
 - **Never mention AI/assistant authorship**. No `Co-Authored-By: Claude`, no "generated with" footer.
 
-## Step 7 — Open a PR against the base branch
+> The escape hatch (ad-hoc fixes) is separate: there the user has *explicitly* asked you to commit/push on the current branch, so `handoff` doesn't gate it — follow the **Escape hatch** section instead.
 
-This is where the most common, costly mistake happens, so the procedure is precise.
+## Step 7 — Push, then open a PR against the base branch
+
+This is where the most common, costly mistake happens, so the procedure is precise. Two write actions live here — pushing the branch and opening the PR — and each has its own handoff gate.
+
+### Push the branch (handoff gate)
+
+**Default (`handoff.push` true or absent): the user pushes.** Once the commit exists, render the push command and ask the user to run it themselves:
+
+> Ready to push. Run:
+> `git push -u <git.remote> HEAD`
+> (`git.remote` defaults to `origin`.) Tell me once it's pushed.
+
+Wait for confirmation before touching the PR. **Only when `handoff.push: false`** does the agent run the push itself.
+
+Either way, before pushing, sanity-check the commit list: `git log --oneline <baseBranch>..HEAD` should show only the commits you intended — nothing dragged in from a stale base.
+
+### Open the PR (handoff gate)
 
 The mechanism depends on `pullRequest.automation`:
 
-- **`gh`** (default for GitHub-hosted repos): use the GitHub CLI commands below.
-- **`manual`** (GitLab, Bitbucket, Gitea, internal tools, or no PR CLI installed): push the branch and render a copy-paste PR draft for the user. **Read `references/manual-pr.md`** and use the procedure there instead of the `gh` flow below. Most of the rest of this section (title format, body structure, base-branch discipline) still applies — the only change is the open-the-PR mechanism.
+- **`gh`** (default for GitHub-hosted repos): use the GitHub CLI command below.
+- **`manual`** (GitLab, Bitbucket, Gitea, internal tools, or no PR CLI installed): render a copy-paste PR draft for the user. **Read `references/manual-pr.md`** and use the procedure there instead of the `gh` flow below. Most of the rest of this section (title format, body structure, base-branch discipline) still applies — the only change is the open-the-PR mechanism. (Manual mode is already a handoff — the user always opens the PR there.)
 
-### Open the PR (gh mode)
+**Default (`handoff.pullRequest` true or absent): the user opens the PR.** In `gh` mode, *render* the exact command for the user to run rather than running it — then ask them to paste back the PR number or URL so you can verify it (see **Verify after creation**):
+
+> Ready to open the PR. Run:
+> ```bash
+> gh pr create --base <baseBranch> \
+>   --title "<TICKET-ID>: <concise summary>" \
+>   --body "$(cat <<'EOF'
+> ## Summary
+> - <bullet 1>
+> - <bullet 2>
+>
+> ## Test plan
+> - [ ] <how to verify>
+>
+> Closes <TICKET-ID>
+> EOF
+> )"
+> ```
+> Paste the PR URL once it's open and I'll verify the base and commit count.
+
+**Only when `handoff.pullRequest: false`** does the agent run `gh pr create` itself:
 
 ```bash
 gh pr create --base <baseBranch> \
@@ -315,6 +377,8 @@ There is no exception. If the user wants a different base, they tell you so expl
 
 ### Verify after creation
 
+Verification is read-only, so run it regardless of the handoff setting — in handoff mode, once the user reports the PR number/URL back to you:
+
 ```bash
 gh pr view <number> --json baseRefName,commits \
   --jq '{base: .baseRefName, commitCount: (.commits | length)}'
@@ -326,7 +390,7 @@ The `base` must equal `git.baseBranch`. The `commitCount` must match the commits
 gh pr edit <number> --base <baseBranch>
 ```
 
-Then re-verify. Don't move on until both checks pass.
+In handoff mode, flag the mismatch to the user and offer that `gh pr edit` retarget rather than silently editing their PR. Then re-verify. Don't move on until both checks pass.
 
 ### Reviewer logic (gh mode)
 
@@ -362,7 +426,7 @@ In `manual` mode, reviewer info — if any — goes into the rendered PR draft b
 
 ## Step 8 — Move the ticket to "In Review", attach the PR
 
-Immediately after the PR opens (or, in manual PR mode, once the user has supplied the PR URL back), update ticket status to `tracker.statuses.inReview` and attach the PR URL. Tracker-specific calls in `references/<tracker>.md`.
+Immediately after the PR opens — or, in handoff or manual PR mode, once the user has supplied the PR URL back — update ticket status to `tracker.statuses.inReview` and attach the PR URL. Tracker-specific calls in `references/<tracker>.md`.
 
 - **Linear / Jira / GitHub Issues** → automatic via the tracker reference.
 - **Manual tracker** → render a reminder for the user to update their offline tool and attach the PR URL there. See `references/manual-tracker.md`.
@@ -394,10 +458,11 @@ Run through this before starting each feature, and again before opening the PR. 
 2. Did I resolve the ticket before branching — a valid id matching `tracker.ticketIdPattern`, an issue I just created, or an explicit no-ticket exception the user confirmed?
 3. Is the ticket marked **In Progress**?
 4. If `skillSelection.askBeforeImplementation`, did I ask the user which skills to load and load them?
-5. Did I open the PR with explicit `--base <baseBranch>`? Did I verify base + commit count via `gh pr view`?
-6. Did I move the ticket to **In Review** and attach the PR URL?
-7. If `timeTracking.enabled`, did I log a time entry for this round (and confirm the estimate with the user)?
-8. Has the user confirmed the merge before I marked the ticket **Done** and rendered the final time output?
+5. Unless a `handoff` key is explicitly `false`, did I hand the write steps back to the user — preparing the commit, the push command, and the PR rather than running them, and pausing at each gate?
+6. When the PR was opened (by the user, or by me only if `handoff.pullRequest: false`), was it created with explicit `--base <baseBranch>`? Did I verify base + commit count via `gh pr view`?
+7. Did I move the ticket to **In Review** and attach the PR URL?
+8. If `timeTracking.enabled`, did I log a time entry for this round (and confirm the estimate with the user)?
+9. Has the user confirmed the merge before I marked the ticket **Done** and rendered the final time output?
 
 ## Reference files
 

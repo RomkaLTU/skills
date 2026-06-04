@@ -29,8 +29,12 @@
     "skipSelfReview": true
   },
   "commitSkill": {
-    "name": "commit",
-    "userInvokedOnly": true
+    "name": "commit"
+  },
+  "handoff": {
+    "commit": true,
+    "push": true,
+    "pullRequest": true
   },
   "requireTicket": true,
   "skillSelection": {

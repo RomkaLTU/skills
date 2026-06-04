@@ -16,7 +16,9 @@ If a project regularly uses GitLab and wants automation later, a future `pullReq
 git push -u <git.remote> HEAD
 ```
 
-`git.remote` defaults to `origin`. Capture the push output — most hosts (GitLab, GitHub, Gitea) print a "Create a merge request" / "Create a pull request" URL when pushing a new branch. Surface it to the user verbatim:
+`git.remote` defaults to `origin`. **Respect the `handoff.push` gate:** by default (true or absent) you render that command and ask the user to run it, then wait — don't push yourself. Only `handoff.push: false` lets you run the push.
+
+Once it's pushed, capture the push output — most hosts (GitLab, GitHub, Gitea) print a "Create a merge request" / "Create a pull request" URL when pushing a new branch. Surface it to the user verbatim:
 
 > "Branch pushed. Your host suggested this URL to open the PR:
 > `<url-from-push-output>`
