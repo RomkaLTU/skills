@@ -68,8 +68,26 @@ skills/<name>/assets/       # templates / example configs
 install.sh                  # no-CLI symlink installer/updater
 ```
 
+## Releases
+
+Each skill versions independently. On merge to `main`, the
+[`Release skills`](.github/workflows/release.yml) workflow reads every
+`skills/<name>/SKILL.md` `version:` field and, for any version it hasn't released
+yet, creates a git tag `<name>-v<version>` and a GitHub Release whose notes are
+that version's section from `CHANGELOG.md`. It's idempotent — unchanged skills are
+skipped — so it backfills the current version on first run and cuts a new release
+only when a `version:` bumps.
+
+Two conventions keep this working:
+- The CHANGELOG heading for a skill (`## <name>`) must match its directory name.
+- Each released version has a `### <version>` block under that heading.
+
+The Skills CLI still installs from the `version:` frontmatter + lockfile, not from
+tags — releases are for human change-tracking and a stable git pointer per version.
+
 ## Contributing
 
 Edit a skill under `skills/<name>/`, bump its `version` in `SKILL.md` frontmatter,
-add a `CHANGELOG.md` entry, and open a PR. Once merged, teammates pick it up with
-`npx skills update` (or by re-running `install.sh`).
+add a matching `### <version>` entry under `## <name>` in `CHANGELOG.md`, and open a
+PR. Once merged, the release workflow tags `<name>-v<version>` and teammates pick it
+up with `npx skills update` (or by re-running `install.sh`).

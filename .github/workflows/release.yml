@@ -1,0 +1,69 @@
+name: Release skills
+
+# Per-skill releases. When a skill's `version:` frontmatter bumps on main, tag
+# `<skill>-v<version>` and cut a GitHub Release whose notes are that version's
+# section from CHANGELOG.md. Idempotent: skills whose current-version tag already
+# exists are skipped, so re-runs (and the first run) are safe.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'skills/*/SKILL.md'
+      - 'CHANGELOG.md'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Tag and release new skill versions
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git fetch --tags --quiet
+
+          for skill_md in skills/*/SKILL.md; do
+            [ -e "$skill_md" ] || continue
+            name=$(basename "$(dirname "$skill_md")")
+            version=$(grep -m1 '^version:' "$skill_md" \
+              | sed -E 's/^version:[[:space:]]*//' \
+              | tr -d '[:space:]' || true)
+
+            if [ -z "$version" ]; then
+              echo "::warning::$name: no version in SKILL.md frontmatter, skipping"
+              continue
+            fi
+
+            tag="${name}-v${version}"
+            if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+              echo "$tag already released, skipping"
+              continue
+            fi
+
+            # Pull the `### <version>` block from the skill's `## <name>` section.
+            notes=$(awk -v skill="$name" -v ver="$version" '
+              /^## /  { in_skill = ($0 == "## " skill); in_ver = 0; next }
+              /^### / {
+                if (in_skill && $0 == "### " ver) { in_ver = 1; next }
+                if (in_ver) in_ver = 0
+              }
+              in_ver { print }
+            ' CHANGELOG.md)
+
+            [ -n "$notes" ] || notes="Release $name $version. See CHANGELOG.md."
+
+            echo "Releasing $tag"
+            printf '%s\n' "$notes" | gh release create "$tag" \
+              --target "$GITHUB_SHA" \
+              --title "$name $version" \
+              --notes-file -
+          done
