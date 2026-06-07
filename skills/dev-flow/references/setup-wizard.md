@@ -130,13 +130,13 @@ Default proposal: `handoff` (all three true). This is the safe default — expli
 - Choosing **handoff** → omit the `handoff` block (it defaults on) *or* write it explicitly for clarity. Optionally let the user pick per-step (e.g. auto-commit but hand off the PR) and write only the keys they flip.
 - Choosing **automatic** → write `"handoff": { "commit": false, "push": false, "pullRequest": false }`.
 
-## Step 6 — Skill selection prompt
+## Step 6 — Skill selection mode
 
 Ask:
 
-> "Before each implementation, should I pause and ask which other skills (vue, nuxt, laravel-simplifier, claude-api, etc.) to load for the task? (default: yes)"
+> "Before each implementation, how should I handle loading specialist skills (vue, nuxt, laravel-simplifier, claude-api, etc.)? **ask** = pause and let you pick (default); **auto** = pick the relevant ones from the ticket and load them without asking; **skip** = don't load any."
 
-Default: `skillSelection.askBeforeImplementation: true`. The user can disable globally by answering no — they'd still see suggested skills inferred from the ticket, just without the explicit pick step.
+Default: `skillSelection.mode: "ask"` (equivalently the legacy `skillSelection.askBeforeImplementation: true`). Note that **headless / unattended runs always behave as `auto` regardless of this setting**, so an automated loop never blocks on the skill picker — it selects skills from the ticket context and proceeds.
 
 ## Step 7 — Time tracking
 

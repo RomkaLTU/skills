@@ -1,5 +1,6 @@
 ---
 name: dev-flow
+version: 1.2.0
 description: >-
   Run a ticket-driven git workflow: choose the base branch, tie work to a project-management ticket, name branches and commits, open PRs against the right base, verify before review, and move ticket statuses. Use when starting work from a ticket id or bare number, kicking off a plan/spec/PRD/todo file, asking what branch to use, opening a PR, syncing tracker status after branch or merge work, or setting up/reconfiguring `.dev-flow/config.json` for tracker, base branch, PR, commit, or time-tracking settings. Do not use for code review of an existing PR, one-off commits on an already-created branch, breaking a plan into many issues, writing PRDs, configuring CI, release/integration branch promotion, or generic git how-to questions.
 ---
@@ -72,7 +73,11 @@ All fields optional except `tracker.type`. Sensible defaults are noted.
   },
   "requireTicket": true,                    // false = allow no-ticket branches by default
   "skillSelection": {
-    "askBeforeImplementation": true         // false = skip the skill-picker prompt
+    "askBeforeImplementation": true,        // legacy boolean: true → ask, false → skip. Superseded by `mode`.
+    "mode": "ask"                           // "ask" (default) = prompt the user which skills to load;
+                                            // "auto" = select skills from the ticket context and load them
+                                            //          without asking; "skip" = load nothing.
+                                            // Headless / unattended runs force "auto" regardless (see Step 5).
   },
   "timeTracking": {
     "enabled": true,                        // false to skip every time-tracking step
@@ -224,57 +229,65 @@ The same skip applies to Step 8 (move to In Review) and Step 9 (move to Done).
 
 → **Time tracking:** if `timeTracking.enabled`, create or open the ticket's time file and set/update the `started` timestamp. See `references/time-tracking.md`.
 
-## Step 5 — Pick skills to load for this task
+## Step 5 — Load the skills this task needs
 
-Before any implementation begins, pause and ask the user which of the available skills should be loaded for this work. Different tickets benefit from different specialists — `vue` for SFC work, `nuxt` for routing/middleware, `laravel-simplifier` for PHP cleanup, `claude-api` for Anthropic SDK code, `simplify` for general code-quality review, etc.
+Before any implementation begins, bring the right specialist skills into scope. Different tickets benefit from different specialists — `pest-testing` for tests, `inertia-react-development` / `tailwindcss-development` for UI, `medialibrary-development` for uploads, `pennant-development` for feature flags, `claude-api` for Anthropic SDK code, `simplify` for general cleanup, etc. Skills brought into context cost tokens, so the aim is a tight, relevant set — not the whole inventory.
 
-This is an explicit pause on purpose. The user knows the ticket better than the skill list does, and skills brought into context cost tokens — load too many and the session gets noisy; load too few and the implementation phase misses domain-specific guidance.
+This step resolves to one of three modes, and **the mode is chosen automatically** so the skill behaves correctly whether a human is driving or it's running headless inside an automated loop:
 
-Skip this step entirely if `skillSelection.askBeforeImplementation: false` in config, or if the user's prompt already named the skills to use.
+- **`ask`** — suggest a set and let the user pick (the interactive default).
+- **`auto`** — select the relevant skills from the ticket context and load them *without asking*.
+- **`skip`** — load nothing.
 
-### Procedure
+### Decide the mode
 
-1. **Enumerate available skills.** Skills appear in the session's `<system-reminder>` messages with names and descriptions. Build the list from there — don't guess from training data.
+Pick the first that applies:
 
-2. **Suggest a default selection** based on the ticket title/description and the parts of the codebase the work likely touches. Be concrete: 1–3 strong matches, not a full inventory. Explain *why* in one phrase per suggestion.
+1. **The prompt already decided.** If the invoking prompt named the skills to load ("with the vue skill, do X"), load exactly those and skip the rest of this step. If the prompt says to auto-select / not to pause / that the run is unattended ("auto-select the relevant skills", "don't ask which skills to load", "[unattended run]"), use **`auto`**.
+2. **Config says so.** Read `skillSelection.mode` from the Step 0 config: `"ask"`, `"auto"`, or `"skip"`. If `mode` is absent, fall back to the legacy boolean `skillSelection.askBeforeImplementation` (`true` → `ask`, `false` → `skip`). Default when neither is set: `ask`.
+3. **No human can answer.** If you're running non-interactively — a headless / print / batch session, `AskUserQuestion` is unavailable, or anything in context signals an unattended run ("no human is watching", "never call AskUserQuestion", a CI/loop preamble) — use **`auto`** regardless of config. **Unattended downgrades `ask` to `auto`, never to `skip`**: you still load the right skills, you just choose them yourself instead of asking.
 
-3. **Ask the user.** Use `AskUserQuestion` for a proper multi-select if available — that's the cleanest UI. Fallback: a numbered list with a comma-separated reply.
+> Why `ask → auto` (not `ask → skip`) when unattended: skipping was the old way an automated run avoided the prompt, and it threw away the whole benefit — implementation then ran with *no* domain skills in scope. Auto keeps the value (context-appropriate skills) without the blocking question.
+
+### Build the candidate set (all modes)
+
+Whether you ask or auto-load, compute the candidates the same way:
+
+1. **Enumerate available skills** from the session's `<system-reminder>` messages (names + descriptions). Don't guess from training data — only skills actually present can be loaded.
+2. **Match against the work** — the ticket title/description (fetched at Step 2), the plan if this was a plan-kickoff, and the parts of the codebase the change will touch. Produce 1–3 strong matches, each with a one-phrase reason. Always include the project's test skill (e.g. `pest-testing`) when the work will add or change tests — which is almost always.
+
+### `ask` mode — interactive
+
+1. Present the suggestion and the full list, and **ask the user** with `AskUserQuestion` (multi-select) if available; otherwise a numbered list with a comma-separated reply.
 
    ```
    Which skills should I load for MLG-123 (Add booking reminders)?
 
    Suggested: nuxt, vue
      - nuxt → reminder dispatch likely lives in server/api routes
-     - vue   → user-facing reminder settings need an SFC
+     - vue  → user-facing reminder settings need an SFC
 
-   All available:
-     1. vue
-     2. nuxt
-     3. laravel-simplifier
-     4. simplify
-     5. claude-api
-     6. vercel:shadcn
-     ...
-
-   Reply with names (comma-separated), numbers (e.g. 1,2), 'all', or 'none'.
+   All available: 1. vue  2. nuxt  3. laravel-simplifier  4. simplify  5. claude-api  …
+   Reply with names, numbers (1,2), 'all', or 'none'.
    ```
 
-4. **Load the selection** by invoking each chosen skill via the `Skill` tool. Track which were loaded so you can mention them in the wrap-up.
+2. **Load the selection** via the `Skill` tool, then confirm in one line — "Loaded: nuxt, vue. Starting implementation." — and proceed.
 
-5. **Confirm and proceed.** One-line ack — "Loaded: nuxt, vue. Starting implementation." — so the user knows what's active driving the work.
+### `auto` mode — unattended / headless
 
-### When to skip the question (but still record what was loaded)
+1. **Do not call `AskUserQuestion`.** Take the candidate set you just computed as the selection (the 1–3 strongest plus the test skill).
+2. **Load it** via the `Skill` tool.
+3. **Note it in one line** so the transcript records the assumption — "Auto-loaded (unattended): pest-testing, inertia-react-development — UI slice with new tests." — then go straight to implementation.
 
-- The user's original prompt explicitly named skills ("with the vue skill, do X") — load those, skip the prompt, move on.
-- Ticket is clearly trivial (typo fix, one-line config tweak) — propose `none` as the default and ask once; if user agrees, proceed without loading anything.
-- `skillSelection.askBeforeImplementation: false` is set in config — skip entirely (but the user gave up the safety net by setting that flag).
+This is the path that makes the skill safe inside automated loops (e.g. a Ralph-style runner): it never blocks on a question, and it still pulls in the domain skills the slice needs based on the *actual ticket*, not a fixed list.
+
+### `skip` mode — load nothing
+
+Only when `mode: "skip"` (or the legacy `askBeforeImplementation: false`) is set, or the ticket is genuinely trivial (typo / one-line config). Load nothing and proceed — the user or config has explicitly traded the safety net for speed.
 
 ### Why this matters
 
-The whole point of having many specialist skills is that they're focused — each one carries deep domain knowledge that doesn't pollute every conversation. Picking up front means:
-- Implementation starts with the right context already in scope.
-- The user sees and signs off on what's about to drive the work — fewer "wait, why is it suggesting that" moments mid-implementation.
-- Off-domain skills don't waste tokens or risk wrong-domain advice.
+The whole point of having many specialist skills is that they're focused — each carries deep domain knowledge that shouldn't pollute every conversation. Resolving the set up front means implementation starts with the right context already in scope, off-domain skills don't waste tokens — and, crucially, an unattended run gets the same benefit a human would, without anyone there to pick.
 
 ## Step 6 — Commit
 
@@ -456,7 +469,7 @@ Run through this before starting each feature, and again before opening the PR. 
 1. Am I on a feature branch (not the base branch)?
 2. Did I resolve the ticket before branching — a valid id matching `tracker.ticketIdPattern`, an issue I just created, or an explicit no-ticket exception the user confirmed?
 3. Is the ticket marked **In Progress**?
-4. If `skillSelection.askBeforeImplementation`, did I ask the user which skills to load and load them?
+4. Did I resolve skill loading per Step 5 — `ask` (prompted the user), `auto` (selected by ticket context and loaded without asking, the path headless/unattended runs always take), or `skip` — and load the chosen skills?
 5. Unless a `handoff` key is explicitly `false`, did I hand the write steps back to the user — preparing the commit, the push command, and the PR rather than running them, and pausing at each gate?
 6. When the PR was opened (by the user, or by me only if `handoff.pullRequest: false`), was it created with explicit `--base <baseBranch>`? Did I verify base + commit count via `gh pr view`?
 7. Did I move the ticket to **In Review** and attach the PR URL?

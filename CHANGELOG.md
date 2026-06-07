@@ -2,6 +2,20 @@
 
 ## dev-flow
 
+### 1.2.0
+- Skill selection (Step 5) is now **mode-aware** and safe for unattended runs.
+  Instead of always pausing to ask which skills to load, the step resolves to one
+  of three modes — `ask` (prompt the user, the interactive default), `auto`
+  (select skills from the ticket context and load them without asking), or `skip`
+  (load nothing).
+- **Headless / non-interactive sessions force `auto`**, so an automated loop
+  (e.g. a Ralph-style runner) loads the domain skills a slice needs based on the
+  actual ticket — it no longer has to choose between blocking on `AskUserQuestion`
+  and skipping skill loading entirely. Unattended downgrades `ask` to `auto`,
+  never to `skip`.
+- New `skillSelection.mode` config key (`"ask" | "auto" | "skip"`); the legacy
+  `askBeforeImplementation` boolean still works (`true` → `ask`, `false` → `skip`).
+
 ### 1.1.0
 - Commit, push, and PR creation now **hand off to the user by default** instead of
   running automatically. After implementation the agent prepares everything (commit

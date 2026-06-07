@@ -38,7 +38,8 @@
   },
   "requireTicket": true,
   "skillSelection": {
-    "askBeforeImplementation": true
+    "askBeforeImplementation": true,
+    "mode": "ask"
   },
   "timeTracking": {
     "enabled": true,
