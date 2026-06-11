@@ -21,6 +21,10 @@
       "refactor": "refactor"
     }
   },
+  "epics": {
+    "enabled": true,
+    "branchPrefix": "epic"
+  },
   "pullRequest": {
     "automation": "gh",
     "reviewers": [

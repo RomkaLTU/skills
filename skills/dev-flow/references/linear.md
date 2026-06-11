@@ -42,6 +42,12 @@ mcp__claude_ai_Linear__get_issue
 
 Use the returned `title` to derive the branch description and PR title.
 
+## Detect a parent (epic)
+
+The same `get_issue` response carries the parent link when the issue is a sub-issue: look for a `parent` field (or `parentId`) holding the parent's identifier (e.g. `MLG-190`). If present, that parent is the epic for SKILL.md Step 2.5 — fetch *it* with `get_issue` too, so its `title` can name the epic branch if one needs bootstrapping. Projects are **not** parents in this sense — only an actual parent issue triggers the epic flow.
+
+In MCP-fallback mode there's nothing to read; ask the user whether the ticket belongs to an epic and which one.
+
 ## Update status
 
 ```

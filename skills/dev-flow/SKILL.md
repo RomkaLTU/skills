@@ -1,6 +1,6 @@
 ---
 name: dev-flow
-version: 1.2.0
+version: 1.3.0
 description: >-
   Run a ticket-driven git workflow: choose the base branch, tie work to a project-management ticket, name branches and commits, open PRs against the right base, verify before review, and move ticket statuses. Use when starting work from a ticket id or bare number, kicking off a plan/spec/PRD/todo file, asking what branch to use, opening a PR, syncing tracker status after branch or merge work, or setting up/reconfiguring `.dev-flow/config.json` for tracker, base branch, PR, commit, or time-tracking settings. Do not use for code review of an existing PR, one-off commits on an already-created branch, breaking a plan into many issues, writing PRDs, configuring CI, release/integration branch promotion, or generic git how-to questions.
 ---
@@ -52,6 +52,12 @@ All fields optional except `tracker.type`. Sensible defaults are noted.
       "chore":    "chore",
       "refactor": "refactor"
     }
+  },
+  "epics": {
+    "enabled": true,                        // default: true — when the ticket has a parent (epic), branch
+                                            // the subtask from the epic's branch and PR back to it
+                                            // (see Step 2.5). false = always branch from git.baseBranch.
+    "branchPrefix": "epic"                  // prefix when bootstrapping an epic branch: epic/<EPIC-ID>-<desc>
   },
   "pullRequest": {
     "automation": "gh",                     // "gh" = use GitHub CLI; "manual" = render a copy-paste draft
@@ -148,6 +154,8 @@ Never start coding on the base branch. Two reasons:
 - Branching from a stale base produces PRs littered with already-merged commits — confusing for reviewers and risky to revert.
 
 > **One base branch, whatever it's called.** This skill always branches from — and targets per-ticket PRs back to — whatever `git.baseBranch` is set to. For most projects that's `main`: branch off `main`, PR back to `main`, done. Some teams keep two long-lived branches (an integration branch where features land, often `dev`/`develop`, plus a production branch like `main`); there, set `git.baseBranch` to the integration branch and per-ticket PRs target it. Either way, **promoting one long-lived branch into another** (a release or integration merge between standing branches) is **out of scope** — the user opens that PR by hand when they're ready to ship.
+>
+> **One exception:** when the ticket is a **subtask of an epic** (Step 2.5), the epic's branch replaces the base branch as the *work base* — the subtask branches from it and PRs back to it. The epic branch itself still goes to `git.baseBranch` via a PR the user opens (the agent renders the command at close-out — see `references/epic-subtasks.md`).
 
 Procedure:
 
@@ -186,7 +194,20 @@ For `tracker.type: "manual"`, "create an issue" means recording a *local* ticket
 
 Default posture: with `requireTicket: true`, lead with options 1–2 and treat 3 as the deliberate override; with `requireTicket: false`, option 3 is a fine default.
 
-Once you have a valid id, fetch the ticket via the tracker reference for your `tracker.type` (see [Reference files](#reference-files)) so you can confirm it exists and read the description. The description usually gives you the right wording for the branch name and PR title.
+Once you have a valid id, fetch the ticket via the tracker reference for your `tracker.type` (see [Reference files](#reference-files)) so you can confirm it exists and read the description. The description usually gives you the right wording for the branch name and PR title. **While you're looking at the fetched ticket, also read its parent field** — that's the input to Step 2.5.
+
+## Step 2.5 — Subtask of an epic? Branch from the epic branch
+
+Some tickets aren't standalone — they're sub-issues of a parent ticket (an epic). Those don't branch from `git.baseBranch`: the subtask branches **from the epic's branch** and its PR targets the epic branch, so the epic accumulates its subtasks and lands on the base branch as one reviewable unit.
+
+When fetching the ticket at Step 2, check whether it has a parent — each tracker reference has a **"Detect a parent"** section with the exact call. If `epics.enabled` isn't `false` and a parent exists (or the user says the ticket belongs to an epic), **read `references/epic-subtasks.md` and follow it**. In short:
+
+1. Tell the user in one line that you're switching to the epic flow (detection is automatic, not silent).
+2. Resolve the epic's branch — search local + remote for the parent's ticket id; if no branch exists yet, bootstrap `<epics.branchPrefix>/<EPIC-ID>-<desc>` from an up-to-date base.
+3. Run the rest of the flow with the epic branch as the **work base**: branch from it (Steps 1/3), sanity-check and PR against it (Step 7), sync it after merge (Step 9). Statuses still move on the *subtask* ticket only — never auto-transition the epic.
+4. The epic → base PR is **always** the user's to open, regardless of `handoff` — at close-out the agent verifies the children and renders the command.
+
+For `tracker.type: "manual"` / `"none"`, or any tracker in degraded mode, there's no parent field to read — the flow applies only when the user states the parent. No parent, or `epics.enabled: false` → continue with the normal flow; nothing changes.
 
 ## Step 3 — Branch naming
 
@@ -212,6 +233,8 @@ Create with:
 ```bash
 git checkout -b <type>/<TICKET-ID>-<description> <baseBranch>
 ```
+
+For an epic subtask (Step 2.5), the start point is the epic branch, not `<baseBranch>`.
 
 When `tracker.type: "none"`, drop the ticket id segment: `fix/login-redirect-loop`.
 
@@ -323,6 +346,8 @@ Either way, the commit content follows `references/commit-conventions.md`. The h
 ## Step 7 — Push, then open a PR against the base branch
 
 This is where the most common, costly mistake happens, so the procedure is precise. Two write actions live here — pushing the branch and opening the PR — and each has its own handoff gate.
+
+> **Epic subtask?** Everywhere this step says `<baseBranch>`, substitute the **work base** from Step 2.5 — the epic branch. The pre-push `git log` check, the `--base` flag, and the post-create verification all compare against the epic branch, and the verification is even less skippable here (two wrong answers exist: the base branch, or a sibling subtask's branch). Make sure the epic branch itself is on the remote first — if it was just bootstrapped, its push rides the same `handoff.push` gate.
 
 ### Push the branch (handoff gate)
 
@@ -461,6 +486,8 @@ Wait for the user to confirm the merge (or check via `gh pr view <n> --json stat
 
 The final output goes straight to the user, ready to paste into Linear/Jira/Toggl/wherever — that's the last thing they see when the ticket closes out.
 
+**Epic subtask:** step 2 above syncs the *epic branch* instead of the base (the subtask merged into the epic, not into base), and the epic ticket stays untouched. When the *epic itself* is done, run the close-out in `references/epic-subtasks.md` — verify the children, then render (never run) the epic → `<baseBranch>` PR command for the user.
+
 ## Pre-flight checklist
 
 Run through this before starting each feature, and again before opening the PR. If any answer is "no", fix it before continuing.
@@ -468,6 +495,7 @@ Run through this before starting each feature, and again before opening the PR. 
 0. Did the user explicitly opt into an ad-hoc fix (and does `adHocFixes.allowed` permit it)? If so — follow the **Escape hatch** section instead of this checklist: edit/commit/push on the current branch per `adHocFixes.scope`, no ticket, no PR ceremony — only never on `git.baseBranch`.
 1. Am I on a feature branch (not the base branch)?
 2. Did I resolve the ticket before branching — a valid id matching `tracker.ticketIdPattern`, an issue I just created, or an explicit no-ticket exception the user confirmed?
+2.5. Did I check the ticket's parent field (Step 2.5)? If it's a subtask of an epic, am I branched from — and PR'ing back to — the epic branch, not `git.baseBranch`?
 3. Is the ticket marked **In Progress**?
 4. Did I resolve skill loading per Step 5 — `ask` (prompted the user), `auto` (selected by ticket context and loaded without asking, the path headless/unattended runs always take), or `skip` — and load the chosen skills?
 5. Unless a `handoff` key is explicitly `false`, did I hand the write steps back to the user — preparing the commit, the push command, and the PR rather than running them, and pausing at each gate?
@@ -485,6 +513,9 @@ Read these as needed during the workflow:
 
 **Setup wizard** (consult at Step 0 when no config exists, or whenever the user asks to set up / reconfigure the flow):
 - `references/setup-wizard.md`
+
+**Epic / subtask flow** (consult at Step 2.5 when the ticket has a parent, and at Step 9 for the epic close-out):
+- `references/epic-subtasks.md`
 
 **Tracker-specific** (consult at Steps 2, 4, 8, 9 — pick by `tracker.type`; the "Create an issue" sections back Step 2's create-issue option):
 - Linear → `references/linear.md`

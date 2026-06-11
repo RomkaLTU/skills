@@ -32,6 +32,19 @@ GET /rest/api/3/issue/<TICKET-ID>
 
 Returns `fields.summary`, `fields.status`, `fields.assignee`, `fields.description`. Use `summary` to derive the branch description.
 
+## Detect a parent (epic)
+
+Modern Jira (both team-managed and company-managed projects) exposes the parent uniformly:
+
+```
+GET /rest/api/3/issue/<TICKET-ID>?fields=parent,summary
+```
+
+`fields.parent.key` is the parent's id (e.g. `MLG-190`) — that's the epic for SKILL.md Step 2.5; `fields.parent.fields.summary` names the epic branch if one needs bootstrapping. Via MCP, the same `parent` field appears in the get-issue response. Two caveats:
+
+- **Legacy "Epic Link"**: very old company-managed setups store the epic in a custom field (`customfield_1xxxx`) instead of `parent`. If the issue type suggests it belongs to an epic but `parent` is empty, ask the user rather than hunting custom fields.
+- **Degraded mode** (no API access per the capability check): ask the user whether the ticket belongs to an epic and which one.
+
 ## Create an issue
 
 Used when the user kicks off with no ticket id and chooses "create an issue" (SKILL.md Step 2 / `references/plan-kickoff.md`). Creating needs the same API access as transitions — only offer it when the capability check above passed.

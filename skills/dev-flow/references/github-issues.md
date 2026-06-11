@@ -10,6 +10,24 @@ gh issue view <number> --json title,body,state,assignees,labels
 
 Use `title` to derive the branch description.
 
+## Detect a parent (sub-issues)
+
+GitHub's native **sub-issues** expose the parent via GraphQL:
+
+```bash
+gh api graphql -f query='
+  query($owner: String!, $repo: String!, $n: Int!) {
+    repository(owner: $owner, name: $repo) {
+      issue(number: $n) { parent { number title } }
+    }
+  }' -f owner=<owner> -f repo=<repo> -F n=<number> \
+  --jq '.data.repository.issue.parent'
+```
+
+`null` → standalone issue, normal flow. An object → its `number` is the epic for SKILL.md Step 2.5 and its `title` names the epic branch if one needs bootstrapping.
+
+Teams that track epics with **task-list checkboxes** in an umbrella issue (the pre-sub-issues convention) have no machine-readable parent — there the epic flow applies only when the user states the parent.
+
 ## Create an issue
 
 Used when the user kicks off with no ticket id and chooses "create an issue" (SKILL.md Step 2 / `references/plan-kickoff.md`). Same `gh` CLI you already use for PRs — no extra access needed beyond `gh auth`:

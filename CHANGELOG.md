@@ -2,6 +2,26 @@
 
 ## dev-flow
 
+### 1.3.0
+- **Epic / subtask flow** (new Step 2.5 + `references/epic-subtasks.md`): when the
+  ticket being started is a sub-issue of a parent ticket (an epic), the subtask now
+  branches **from the epic's branch** and its PR targets the epic branch instead of
+  `git.baseBranch`. The epic branch accumulates its subtasks and lands on base as one
+  PR.
+- Parent detection is automatic via the tracker when fetching the ticket at Step 2 —
+  new **"Detect a parent"** sections in the Linear (`parent` field), Jira
+  (`fields.parent`), and GitHub Issues (sub-issues via GraphQL) references. Manual /
+  no-tracker setups and degraded mode enter the flow only when the user states the
+  parent.
+- If the epic has no branch yet, the first subtask bootstraps it from an up-to-date
+  base as `<epics.branchPrefix>/<EPIC-ID>-<desc>` (default prefix `epic`).
+- Statuses keep moving on the subtask ticket only; the epic ticket is never
+  auto-transitioned. The **epic → base PR is always handed to the user** (the agent
+  verifies the children and renders the command at close-out), consistent with the
+  existing long-lived-branch scope note.
+- New `epics` config block: `enabled` (default `true`) and `branchPrefix`
+  (default `"epic"`).
+
 ### 1.2.0
 - Skill selection (Step 5) is now **mode-aware** and safe for unattended runs.
   Instead of always pausing to ask which skills to load, the step resolves to one
