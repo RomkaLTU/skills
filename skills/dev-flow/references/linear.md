@@ -24,8 +24,6 @@ The MCP isn't always loaded — sessions can start without it, the wrong workspa
 
 ## Scope every call to the configured project & team
 
-## Scope every call to the configured project & team
-
 When listing or searching tickets, always pass:
 
 ```
