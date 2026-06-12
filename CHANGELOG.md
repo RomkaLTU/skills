@@ -2,6 +2,26 @@
 
 ## dev-flow
 
+### 1.4.0
+- **Cheaper-model delegation for commit messages** (new `delegation.commitMessage`
+  config block + `references/delegation.md`): drafting the commit message(s) at
+  Step 6 can now run on a faster/cheaper model. The block maps host-agent families
+  to model ids — e.g. `claude → haiku`, `codex → gpt-5.1-codex-mini`,
+  `cursor → composer-1`; keys are open-ended — and the agent uses the entry matching
+  whatever it is running as.
+- The mechanism resolves per host: a native subagent with a model override where
+  the agent supports one (e.g. Claude Code's Task/Agent tool, or a project-shipped
+  `commit-writer` subagent), otherwise a headless one-shot CLI (`claude -p --model …`,
+  `codex exec -m …`, `cursor-agent -p --model …`), otherwise inline drafting as
+  before. Only the message *text* is delegated — commit planning, staging, and every
+  `handoff` gate stay with the main agent; the delegate never runs git commands.
+- Delegated messages are validated against `references/commit-conventions.md`
+  (format, subject length, trailer, no AI mentions) and fixed inline when off.
+  Trivial diffs skip delegation; a missing block, missing agent key, or unavailable
+  mechanism degrades silently to the old inline behavior.
+- Setup wizard mentions the block as opt-in cost tuning (asked only when the user
+  raises cost/model concerns).
+
 ### 1.3.0
 - **Epic / subtask flow** (new Step 2.5 + `references/epic-subtasks.md`): when the
   ticket being started is a sub-issue of a parent ticket (an epic), the subtask now

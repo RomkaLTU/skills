@@ -28,12 +28,25 @@
   "pullRequest": {
     "automation": "gh",
     "reviewers": [
-      { "email": "hello@codesomelabs.com", "githubHandle": "RomkaLTU" }
+      {
+        "email": "person@example.com",
+        "githubHandle": "alice"
+      }
     ],
     "skipSelfReview": true
   },
   "commitSkill": {
     "name": "commit"
+  },
+  "delegation": {
+    "commitMessage": {
+      "enabled": true,
+      "models": {
+        "claude": "haiku",
+        "codex": "gpt-5.1-codex-mini",
+        "cursor": "composer-1"
+      }
+    }
   },
   "handoff": {
     "commit": true,
