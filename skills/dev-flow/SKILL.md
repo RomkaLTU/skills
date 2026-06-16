@@ -339,7 +339,7 @@ Either way, the commit content follows `references/commit-conventions.md`. The h
 - **Atomic, dependency-ordered commits** — one concern per commit, foundations before consumers, refactors separated from features.
 - **Conventional Commits format** by default: `<type>(<scope>): <subject>` + optional body + `Refs: <TICKET-ID>` trailer. Match the project's existing style if `git log` shows something different.
 - **Imperative mood**, subject under 72 chars, body wrapped at 100.
-- **Never mention AI/assistant authorship**. No `Co-Authored-By: Claude`, no "generated with" footer.
+- **Never mention AI/assistant authorship**. No `Co-Authored-By: Claude`, no "generated with" footer. If your agent appends a co-author trailer automatically (Claude Code does, via `includeCoAuthoredBy` in `settings.json`, default on), prose here can't suppress it — set that to `false`; the setup wizard offers this.
 
 > The escape hatch (ad-hoc fixes) is separate: there the user has *explicitly* asked you to commit/push on the current branch, so `handoff` doesn't gate it — follow the **Escape hatch** section instead.
 

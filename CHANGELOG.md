@@ -11,6 +11,11 @@
   best mechanism (a model-override subagent) was also unavailable in the headless loops
   where token cost actually matters. An existing `delegation` block in a project's
   `.dev-flow/config.json` is now simply ignored — no migration needed.
+- **Co-author trailer suppression** is now part of setup. The long-standing "never mention
+  AI authorship" commit rule was prose-only and lost to harnesses that append a
+  `Co-Authored-By` trailer automatically (Claude Code's `includeCoAuthoredBy`, default on).
+  The setup wizard now detects that setting and offers to set it `false`, and both the
+  commit step and the conventions reference note that the rule needs that setting to hold.
 
 ### 1.4.0
 - **Cheaper-model delegation for commit messages** (new `delegation.commitMessage`
