@@ -2,8 +2,6 @@
 
 These conventions govern the commit *message* in both modes of Step 6: when you draft the suggested commit(s) for the user to run (the default, `handoff.commit` true), and when you commit directly (`handoff.commit: false`). Either way the message looks the same — the only difference is who runs `git commit`.
 
-When config has a `delegation.commitMessage` block, the message *text* may be drafted by a cheaper model per `references/delegation.md` — the contract below is unchanged either way, and the delegated result must be validated against it.
-
 **First, look at the project's existing commits.** If `git log -20 --oneline` shows a different style (different format, different types, different trailer), match what the project does. These defaults are the fallback — they shouldn't override a project's lived convention.
 
 ## Logical grouping

@@ -1,6 +1,6 @@
 ---
 name: dev-flow
-version: 1.4.0
+version: 1.5.0
 description: >-
   Run a ticket-driven git workflow: choose the base branch, tie work to a project-management ticket, name branches and commits, open PRs against the right base, verify before review, and move ticket statuses. Use when starting work from a ticket id or bare number, kicking off a plan/spec/PRD/todo file, asking what branch to use, opening a PR, syncing tracker status after branch or merge work, or setting up/reconfiguring `.dev-flow/config.json` for tracker, base branch, PR, commit, or time-tracking settings. Do not use for code review of an existing PR, one-off commits on an already-created branch, breaking a plan into many issues, writing PRDs, configuring CI, release/integration branch promotion, or generic git how-to questions.
 ---
@@ -68,16 +68,6 @@ All fields optional except `tracker.type`. Sensible defaults are noted.
   },
   "commitSkill": {
     "name": "commit",                       // the project's commit slash-command, if any
-  },
-  "delegation": {                           // optional: route low-judgment LLM steps to a faster/cheaper model
-    "commitMessage": {                      // currently the only delegable step — see references/delegation.md
-      "enabled": true,
-      "models": {                           // key = host-agent family, value = that agent's model id;
-        "claude": "haiku",                  // open-ended — add "opencode", "gemini", etc. as needed
-        "codex": "gpt-5.1-codex-mini",
-        "cursor": "composer-1"
-      }
-    }
   },
   "handoff": {                              // who runs the write steps once implementation is done.
                                             // Each defaults to true: the agent PREPARES the step
@@ -326,8 +316,6 @@ The whole point of having many specialist skills is that they're focused — eac
 
 The full conventions live in `references/commit-conventions.md` — read it before planning any commit.
 
-**Cheaper-model delegation:** if the Step 0 config has a `delegation.commitMessage` block with a model entry for the host agent you're running in, the *drafting* of the commit message(s) is delegated to that model — read `references/delegation.md` and follow it. Only the message text is outsourced; commit planning (grouping, ordering), staging, and every handoff gate below stay with you. No block or no matching entry → draft inline as usual, silently.
-
 **Default (`handoff.commit` true or absent): the user commits, not you.** When implementation is done, don't run `git commit` or invoke the commit skill yourself. Instead:
 
 1. Stage nothing automatically and run no commit. Work out the atomic, dependency-ordered commit plan and the message(s) per the conventions below, so the user isn't starting from scratch.
@@ -542,9 +530,6 @@ Read these as needed during the workflow:
 
 **Commit conventions** (consult at Step 6 when crafting commits directly):
 - `references/commit-conventions.md`
-
-**Cheaper-model delegation** (consult at Step 6 when config has a `delegation.commitMessage` block):
-- `references/delegation.md`
 
 **Time tracking** (consult at Steps 4, 8, and 9 when `timeTracking.enabled`):
 - `references/time-tracking.md`
