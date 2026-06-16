@@ -2,8 +2,6 @@
 
 These conventions govern the commit *message* in both modes of Step 6: when you draft the suggested commit(s) for the user to run (the default, `handoff.commit` true), and when you commit directly (`handoff.commit: false`). Either way the message looks the same — the only difference is who runs `git commit`.
 
-When config has a `delegation.commitMessage` block, the message *text* may be drafted by a cheaper model per `references/delegation.md` — the contract below is unchanged either way, and the delegated result must be validated against it.
-
 **First, look at the project's existing commits.** If `git log -20 --oneline` shows a different style (different format, different types, different trailer), match what the project does. These defaults are the fallback — they shouldn't override a project's lived convention.
 
 ## Logical grouping
@@ -72,6 +70,7 @@ refactor(orders): extract shipping calculation to service
 ## Hard restrictions
 
 - **Never mention AI tools, assistants, or code generation** in commit messages. No `Co-Authored-By: Claude`, no "generated with", no meta-commentary about the development process. These are noise to every other developer who reads `git log` for the next decade.
+  - **This rule needs harness help to hold.** Some agents append a co-author trailer automatically at commit time — Claude Code does, via `includeCoAuthoredBy` in `settings.json` (default **on**) — and no amount of prose here suppresses it. If commits keep getting a `Co-Authored-By` line despite this rule, set `includeCoAuthoredBy: false`; the setup wizard detects this and offers to flip it.
 - **Don't editorialize.** "Finally fixes this annoying bug" → just `fix(...)`. State facts.
 - **Don't bundle unrelated changes "for convenience".** If a commit message has three sentences each describing a different change, split it.
 

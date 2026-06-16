@@ -2,6 +2,21 @@
 
 ## dev-flow
 
+### 1.5.0
+- **Removed cheaper-model delegation for commit messages** (the `delegation.commitMessage`
+  config block and `references/delegation.md`, both added in 1.4.0). Drafting a commit
+  message is cheap inline precisely because the diff is already in the agent's context;
+  delegating it to a subagent/CLI meant re-loading that context cold and then validating
+  the result on the main model anyway, so the savings didn't justify the surface area. Its
+  best mechanism (a model-override subagent) was also unavailable in the headless loops
+  where token cost actually matters. An existing `delegation` block in a project's
+  `.dev-flow/config.json` is now simply ignored — no migration needed.
+- **Co-author trailer suppression** is now part of setup. The long-standing "never mention
+  AI authorship" commit rule was prose-only and lost to harnesses that append a
+  `Co-Authored-By` trailer automatically (Claude Code's `includeCoAuthoredBy`, default on).
+  The setup wizard now detects that setting and offers to set it `false`, and both the
+  commit step and the conventions reference note that the rule needs that setting to hold.
+
 ### 1.4.0
 - **Cheaper-model delegation for commit messages** (new `delegation.commitMessage`
   config block + `references/delegation.md`): drafting the commit message(s) at

@@ -130,11 +130,20 @@ Default proposal: `handoff` (all three true). This is the safe default — expli
 - Choosing **handoff** → omit the `handoff` block (it defaults on) *or* write it explicitly for clarity. Optionally let the user pick per-step (e.g. auto-commit but hand off the PR) and write only the keys they flip.
 - Choosing **automatic** → write `"handoff": { "commit": false, "push": false, "pullRequest": false }`.
 
-Last, **cheaper-model delegation** — opt-in cost tuning, so don't ask unless the user has raised cost/model concerns (or asks what else can be configured). When relevant:
+### Suppress the AI co-author trailer
 
-> "Want commit messages drafted on a faster/cheaper model? Tell me the model per agent you use — e.g. `claude → haiku`, `codex → gpt-5.1-codex-mini`, `cursor → composer-1` — and I'll add a `delegation.commitMessage` block."
+dev-flow's commit convention forbids a `Co-Authored-By: Claude` / "generated with" trailer (Step 6). But some agent harnesses append that trailer *themselves* at commit time — Claude Code does, via `includeCoAuthoredBy` in `settings.json`, which **defaults to on** — so the convention can't hold on prose alone. Check it, and offer to fix it like the other wizard steps:
 
-Write only the keys for agents the user actually names; the contract lives in `references/delegation.md`. If the topic never comes up, omit the block entirely.
+```bash
+# Claude Code: look for the setting in project, then user settings
+grep -s includeCoAuthoredBy .claude/settings.json .claude/settings.local.json ~/.claude/settings.json
+```
+
+- Already `false` everywhere → say nothing, it's handled.
+- Unset or `true` → offer: "Your agent auto-adds a `Co-Authored-By` trailer to commits, which fights dev-flow's no-AI-authorship rule. Set `includeCoAuthoredBy: false` so it stops? (recommended)". On yes, set `"includeCoAuthoredBy": false` — in the user `settings.json` by default, or the project's `.claude/settings.json` if the team wants it enforced repo-wide.
+- Host agent has no equivalent setting → skip; nothing to do.
+
+This is the only thing that actually enforces the no-AI-authorship rule; without it, every commit carries the trailer despite the prose.
 
 ## Step 6 — Skill selection mode
 

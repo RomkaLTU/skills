@@ -38,16 +38,6 @@
   "commitSkill": {
     "name": "commit"
   },
-  "delegation": {
-    "commitMessage": {
-      "enabled": true,
-      "models": {
-        "claude": "haiku",
-        "codex": "gpt-5.1-codex-mini",
-        "cursor": "composer-1"
-      }
-    }
-  },
   "handoff": {
     "commit": true,
     "push": true,
