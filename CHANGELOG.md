@@ -2,6 +2,16 @@
 
 ## dev-flow
 
+### 1.6.0
+- **Manual invocation only** (new `disable-model-invocation: true` frontmatter field).
+  The skill no longer auto-triggers from natural-language cues like "start work on ticket
+  X" or "PR this"; the host agent will not load or invoke it on its own. Run it explicitly
+  with `/dev-flow` (or your agent's equivalent skill invocation). This also keeps the
+  skill's description out of the always-loaded context budget when it isn't being used.
+  The trade-off is deliberate: dev-flow does git ceremony with side effects (branches,
+  pushes, PRs, tracker transitions), so gating it behind an explicit call avoids the agent
+  starting the flow on its own read of "this looks ready."
+
 ### 1.5.0
 - **Removed cheaper-model delegation for commit messages** (the `delegation.commitMessage`
   config block and `references/delegation.md`, both added in 1.4.0). Drafting a commit
