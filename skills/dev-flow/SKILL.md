@@ -1,6 +1,6 @@
 ---
 name: dev-flow
-version: 1.6.0
+version: 1.7.0
 disable-model-invocation: true
 description: >-
   Run a ticket-driven git workflow: choose the base branch, tie work to a project-management ticket, name branches and commits, open PRs against the right base, verify before review, and move ticket statuses. Use when starting work from a ticket id or bare number, kicking off a plan/spec/PRD/todo file, asking what branch to use, opening a PR, syncing tracker status after branch or merge work, or setting up/reconfiguring `.dev-flow/config.json` for tracker, base branch, PR, commit, or time-tracking settings. Do not use for code review of an existing PR, one-off commits on an already-created branch, breaking a plan into many issues, writing PRDs, configuring CI, release/integration branch promotion, or generic git how-to questions.
@@ -313,6 +313,19 @@ Only when `mode: "skip"` (or the legacy `askBeforeImplementation: false`) is set
 
 The whole point of having many specialist skills is that they're focused — each carries deep domain knowledge that shouldn't pollute every conversation. Resolving the set up front means implementation starts with the right context already in scope, off-domain skills don't waste tokens — and, crucially, an unattended run gets the same benefit a human would, without anyone there to pick.
 
+## Step 5.5 — Implement: write self-explanatory code
+
+This is where the code actually gets written — between loading skills and handing off the commit. Hold it to one rule: **the code explains itself; a comment is a last resort for what the code genuinely can't say.**
+
+Left ungoverned, agents pad implementations with comments that restate the code and prose that narrates the diff. That noise outlives the change — every future reader pays for it. Keep it out:
+
+- **Make the code readable instead of commenting it.** Reach for a clearer name, a smaller function, or a well-named intermediate variable before reaching for a comment. If a comment would explain *what* a line does, rewrite the line until it no longer needs one.
+- **Comment only what the code can't show** — a non-obvious constraint, a deliberate edge case, a workaround (link its ticket). Never narrate the obvious (`// loop over users`, `// increment count`) and never explain the change itself (`// changed this to fix the login bug`); that history belongs in the ticket, the commit, and the PR — not the source.
+- **Match the file you're in.** Adopt the surrounding comment density and doc style — a file with no comments doesn't want yours; a file that docblocks every public method wants one on yours too. When in doubt, fewer.
+- **Leave no scaffolding.** Delete dead code rather than commenting it out (`git` remembers it). No `TODO` without a ticket id, no banner comment restating the ticket, no commented-out alternatives "just in case".
+
+The same instinct that keeps *why* out of the commit subject and pushes it to the `Refs:` ticket keeps explanation out of the code and in the PR summary. Self-explanatory code is the deliverable; the prose about it lives in the ticket, the PR, and `git log` — not sprinkled through the source.
+
 ## Step 6 — Commit
 
 The full conventions live in `references/commit-conventions.md` — read it before planning any commit.
@@ -499,6 +512,7 @@ Run through this before starting each feature, and again before opening the PR. 
 2.5. Did I check the ticket's parent field (Step 2.5)? If it's a subtask of an epic, am I branched from — and PR'ing back to — the epic branch, not `git.baseBranch`?
 3. Is the ticket marked **In Progress**?
 4. Did I resolve skill loading per Step 5 — `ask` (prompted the user), `auto` (selected by ticket context and loaded without asking, the path headless/unattended runs always take), or `skip` — and load the chosen skills?
+4.5. Is the code self-explanatory (Step 5.5) — comments only where the code genuinely can't speak for itself, nothing commented-out, no comments narrating the diff, matching the file's existing comment density?
 5. Unless a `handoff` key is explicitly `false`, did I hand the write steps back to the user — preparing the commit, the push command, and the PR rather than running them, and pausing at each gate?
 6. When the PR was opened (by the user, or by me only if `handoff.pullRequest: false`), was it created with explicit `--base <baseBranch>`? Did I verify base + commit count via `gh pr view`?
 7. Did I move the ticket to **In Review** and attach the PR URL?

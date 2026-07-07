@@ -2,6 +2,18 @@
 
 ## dev-flow
 
+### 1.7.0
+- **New Step 5.5 — implementation discipline.** The flow now names the
+  implementation phase explicitly (it was previously implicit, wedged between
+  skill loading at Step 5 and the commit at Step 6) and holds it to one rule:
+  write self-explanatory code and treat a comment as a last resort for what the
+  code genuinely can't say. Codifies the anti-patterns that kept showing up in
+  generated code — comments narrating *what* the code does, comments explaining
+  the diff, commented-out alternatives, ticket-less `TODO`s, banner comments
+  restating the ticket — and tells the agent to match the surrounding file's
+  comment density. Added a matching pre-flight checklist item (4.5). No config;
+  the rule is unconditional.
+
 ### 1.6.0
 - **Manual invocation only** (new `disable-model-invocation: true` frontmatter field).
   The skill no longer auto-triggers from natural-language cues like "start work on ticket
