@@ -9,12 +9,14 @@ The assistant is *not* logging its own wall-clock time — it's estimating reali
 Time tracking hooks into the existing steps. There's no separate "log time" invocation — it happens at natural boundaries:
 
 - **Step 4** (move ticket to In Progress) — create/open the time file, set the `started` timestamp.
-- **After Step 8** (PR opened, ticket moved to In Review) — estimate effort for the work since the last logged entry, confirm with the user, append an entry.
-- **Step 9** (merge confirmed) — render the consolidated copy-paste output across all entries, mark `completed`.
+- **After Step 8** (PR opened, ticket moved to In Review) — estimate effort for the work since the last logged entry and append it as a *provisional* entry (`"confirmed": false`). Don't ask the user to confirm the number here.
+- **Step 9** (close-out) — confirm the accumulated total with the user, mark the entries confirmed, render the consolidated copy-paste output, set `completed`.
 
 If the user requests changes after PR review:
 - Treat the work between "user asks for changes" and "next push to the PR" as a new entry.
 - Append it. Total accumulates. Same flow at the next "ready for review" moment.
+
+**Close-out means accepted, not merged.** Where the project has a QA stage between merge and Done — the ticket parks in "Ready for QA" rather than closing on merge — wait for QA sign-off before asking. QA sending the ticket back is more work, which is another entry; confirming at merge would close a total that hasn't stopped moving.
 
 ## Where data lives
 
@@ -39,7 +41,7 @@ Note: the dev-flow config file (`.dev-flow/config.json`) is *not* gitignored —
 **Override via config:**
 
 - `timeTracking.storage: "user"` → stored at `~/.dev-flow/time/<repo-slug>/<TICKET-ID>.json`. Use this if you don't want any time-tracking artifacts inside the repo at all (e.g., if `.gitignore` is owned by a strict CI process you can't modify, or you work across many machines and want everything in one place). `<repo-slug>` derived from `git config --get remote.origin.url`; falls back to the repo basename.
-- `timeTracking.storage: "none"` → don't persist; produce the output at merge time only and forget it after the session.
+- `timeTracking.storage: "none"` → don't persist; produce the output at close-out only and forget it after the session.
 
 ## File schema
 
@@ -56,14 +58,15 @@ Note: the dev-flow config file (`.dev-flow/config.json`) is *not* gitignored —
       "minutes": 195,
       "summary": "Initial implementation: scaffold reminder service, wire to existing notification queue, add unit tests",
       "diffStats": { "files": 8, "additions": 234, "deletions": 12 },
-      "commits": ["a1b2c3d", "e4f5g6h"]
+      "commits": ["a1b2c3d", "e4f5g6h"],
+      "confirmed": false
     }
   ],
   "totalMinutes": 195
 }
 ```
 
-`completed` gets set at merge confirmation. `totalMinutes` is recomputed every time an entry is appended (sum of `entries[].minutes`).
+`confirmed` starts `false` on every appended entry and flips to `true` for all entries at close-out, once the user agrees the total. `completed` gets set at the same moment. `totalMinutes` is recomputed every time an entry is appended (sum of `entries[].minutes`).
 
 ## Estimating effort
 
@@ -90,13 +93,15 @@ Estimate what a senior developer would realistically take, including:
 
 Anchor against diff size, file count, distinct concerns touched, and ticket complexity. A 200-line diff that's mostly generated migration scaffolding ≠ a 200-line diff that rewrites a state machine.
 
-### Always confirm
+### Confirm once, at close-out
 
-Present the estimate, let the user adjust:
+Estimates are recorded as work happens and confirmed **once**, when the ticket is accepted — not each time a PR opens. A number confirmed at PR time is premature: review comments and QA findings both add work, and re-litigating the total after every round wastes the user's attention on a figure that is still moving.
 
-> "I'd log this round at ~3h 15m (8 files, ~250 lines, new service + 4 tests). Sound right, or want to adjust?"
+So: append each round's entry provisionally and say nothing about confirming it. At close-out, present the accumulated total and let the user adjust:
 
-The user knows their pace and the political weight of the number better than the skill does. Don't commit a number to the file without explicit confirmation. If the user just says "yes", proceed; if they give a different number, use theirs without re-arguing.
+> "MLG-123 is done. I logged 2 rounds totalling 4h 30m (initial implementation 3h 15m, review fixes 1h 15m). Confirm, or give me a different number?"
+
+The user knows their pace and the political weight of the number better than the skill does. Don't mark anything confirmed without an explicit answer. If they just say "yes", proceed; if they give a different number, use theirs without re-arguing — and if they restate the whole total rather than per-entry, scale the entries to match or record it as one adjusted total, whichever they asked for.
 
 ## Computing the diff for an entry
 
@@ -115,7 +120,7 @@ Capture file count, lines added/removed, and the new commit shas → these popul
 
 ## Output formats
 
-After merge confirmation, render a copy-paste block in whatever format the project's `timeTracking.outputFormat` requests.
+Once the user has confirmed the total at close-out, render a copy-paste block in whatever format the project's `timeTracking.outputFormat` requests.
 
 ### `default` (human-readable)
 

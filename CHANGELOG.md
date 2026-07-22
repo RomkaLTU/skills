@@ -2,6 +2,18 @@
 
 ## dev-flow
 
+### 1.8.0
+- **Time estimates are confirmed once, at close-out — not when the PR opens.**
+  Step 8 previously stopped to ask the user to confirm the round's number before
+  the work was accepted, which is premature: review comments and QA findings both
+  add entries, so the total is still moving. Step 8 now appends the entry as
+  *provisional* and says nothing; Step 9 presents the accumulated total and asks
+  for the one confirmation. Where a QA stage sits between merge and Done (the
+  ticket parks in "Ready for QA" instead of closing on merge), both the Done
+  transition and the time question wait for QA sign-off. Entries carry a new
+  `confirmed` field, `false` until close-out flips them. Pre-flight items 8 and 9
+  updated to match.
+
 ### 1.7.0
 - **New Step 5.5 — implementation discipline.** The flow now names the
   implementation phase explicitly (it was previously implicit, wedged between
