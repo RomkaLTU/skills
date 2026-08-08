@@ -8,6 +8,7 @@ Shared agent skills for the team. Works with any agent that loads Markdown skill
 | Skill | What it does |
 |-------|--------------|
 | **dev-flow** | Ticket-driven git workflow end-to-end — branch from base → tie to a ticket (Linear / Jira / GitHub Issues / none) → name branches & commits → open the PR against the right base → move the ticket through In Progress / In Review / Done. Also kicks off work from a plan/PRD/todo, and self-initializes its config. Per-repo settings live at `.dev-flow/config.json`. |
+| **trau** | Operate [Trau](https://trau.sh) — the autonomous, ticket-driven development loop — from any agent with a shell or an MCP client. File and queue tickets, arm/pause the queue drain, watch and steer live runs, read run history and spend, diagnose failed or quarantined runs, babysit an armed drain, and manage the local web hub — over the hub's MCP endpoint, its REST API, or the `trau` CLI, with the safety rules an autonomous merge-capable system demands. |
 
 ## Install — Skills CLI (recommended)
 
@@ -15,6 +16,7 @@ You already use this for your other skills; nothing new to learn.
 
 ```bash
 npx skills add RomkaLTU/skills@dev-flow -g -y
+npx skills add RomkaLTU/skills@trau -g -y
 ```
 
 `-g` installs globally into **every** agent the CLI detects. If you hit

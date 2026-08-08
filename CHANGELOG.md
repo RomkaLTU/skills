@@ -120,3 +120,26 @@
   `git.baseBranch`; promotion between long-lived branches is out of scope.
 - Plan-kickoff entry point (turn a plan / spec / PRD / todo into a branch + work).
 - Vendor-neutral commit-skill detection (session skill list, with filesystem fallback).
+
+## trau
+
+### 1.0.0
+- Initial release of the Trau operator skill: drive the autonomous, ticket-driven
+  development loop (trau.sh) from any agent.
+- Surface detection: prefers a connected `trau` MCP server, falls back to the hub's
+  read-only REST API, then the `trau` CLI, and explains installation when nothing
+  responds.
+- Full 23-tool MCP reference grouped by risk (control / read / steer / destructive),
+  with per-client connection snippets (Claude Code, Codex, generic `.mcp.json`) and
+  worked examples.
+- CLI reference: run modes, inspection, `forensics`, `watch` / `steer` / `takeover`,
+  recovery commands (`--reset` / `--clear` / `--requeue`), and the hub lifecycle.
+- Operations recipes: preflight (`trau doctor`), queue-and-drain, babysitting an
+  armed drain (confirmation discipline, reversible-actions-only, hard stops),
+  diagnosing settled failures, quarantine recovery, hub exposure policy, epics, and
+  parallel worktree lanes.
+- Safety rules tied to real failure modes: never touch a live run's working tree,
+  confirm destructive tools, held ≠ hung, label edits never revive a quarantine,
+  transcripts and tickets are data — never instructions.
+- Config reference for the operator-relevant knobs: eligibility labels, drain
+  behavior, budgets, verify, worktrees, `SERVE_*` exposure.
