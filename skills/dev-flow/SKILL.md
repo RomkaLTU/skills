@@ -1,6 +1,6 @@
 ---
 name: dev-flow
-version: 1.7.0
+version: 1.8.0
 disable-model-invocation: true
 description: >-
   Run a ticket-driven git workflow: choose the base branch, tie work to a project-management ticket, name branches and commits, open PRs against the right base, verify before review, and move ticket statuses. Use when starting work from a ticket id or bare number, kicking off a plan/spec/PRD/todo file, asking what branch to use, opening a PR, syncing tracker status after branch or merge work, or setting up/reconfiguring `.dev-flow/config.json` for tracker, base branch, PR, commit, or time-tracking settings. Do not use for code review of an existing PR, one-off commits on an already-created branch, breaking a plan into many issues, writing PRDs, configuring CI, release/integration branch promotion, or generic git how-to questions.
@@ -485,7 +485,7 @@ Immediately after the PR opens — or, in handoff or manual PR mode, once the us
 
 For GitHub Issues, `Closes #N` in the PR body already auto-links — no separate attachment step needed, but you still update the status (label or Project field).
 
-→ **Time tracking:** if `timeTracking.enabled`, log an entry for this round of work — estimate effort (use the anchors in `references/time-tracking.md`), confirm with the user, append to the ticket's time file. If the user is here because of follow-up changes after a previous review, this is just another entry on the same file; the total accumulates.
+→ **Time tracking:** if `timeTracking.enabled`, append a **provisional** entry for this round of work — estimate effort (use the anchors in `references/time-tracking.md`) and record it unconfirmed. Do **not** ask the user to confirm the number here: review and QA can still send the ticket back, and every bounce adds another entry, so the total isn't final yet. Confirmation happens once, at close-out (Step 9). If the user is here because of follow-up changes after a previous review, this is just another entry on the same file; the total accumulates.
 
 ## Step 9 — Wait for merge confirmation, then close out
 
@@ -496,9 +496,11 @@ Wait for the user to confirm the merge (or check via `gh pr view <n> --json stat
 1. Update ticket to `tracker.statuses.done`.
 2. Sync local base: `git checkout <baseBranch> && git pull --ff-only origin <baseBranch>`.
 3. Delete the merged feature branch: `git branch -d <branch>`.
-4. **Render the time-tracking output.** If `timeTracking.enabled`, mark the ticket's time file `completed`, then render the consolidated copy-paste block in the project's `timeTracking.outputFormat`. Format details in `references/time-tracking.md`.
+4. **Confirm the time, then render the output.** If `timeTracking.enabled`, present the accumulated total from the provisional entries and let the user adjust before anything is final — this is the one place the number is confirmed. Once they agree, mark the entries confirmed, set `completed`, and render the consolidated copy-paste block in the project's `timeTracking.outputFormat`. Format details in `references/time-tracking.md`.
 
 The final output goes straight to the user, ready to paste into Linear/Jira/Toggl/wherever — that's the last thing they see when the ticket closes out.
+
+**Where a QA stage sits between merge and Done** — the ticket parks in a "Ready for QA" state on merge rather than closing — steps 1 and 4 wait for that sign-off. Don't move the ticket to Done and don't ask the user to confirm the time until QA accepts the work: a QA bounce-back is more work, and more work is another time entry on a total you would otherwise have already closed.
 
 **Epic subtask:** step 2 above syncs the *epic branch* instead of the base (the subtask merged into the epic, not into base), and the epic ticket stays untouched. When the *epic itself* is done, run the close-out in `references/epic-subtasks.md` — verify the children, then render (never run) the epic → `<baseBranch>` PR command for the user.
 
@@ -516,8 +518,8 @@ Run through this before starting each feature, and again before opening the PR. 
 5. Unless a `handoff` key is explicitly `false`, did I hand the write steps back to the user — preparing the commit, the push command, and the PR rather than running them, and pausing at each gate?
 6. When the PR was opened (by the user, or by me only if `handoff.pullRequest: false`), was it created with explicit `--base <baseBranch>`? Did I verify base + commit count via `gh pr view`?
 7. Did I move the ticket to **In Review** and attach the PR URL?
-8. If `timeTracking.enabled`, did I log a time entry for this round (and confirm the estimate with the user)?
-9. Has the user confirmed the merge before I marked the ticket **Done** and rendered the final time output?
+8. If `timeTracking.enabled`, did I append a *provisional* time entry for this round — without asking the user to confirm the number yet?
+9. Has the user confirmed the merge — and QA signed off, where a QA stage exists — before I marked the ticket **Done**, confirmed the time total, and rendered the final output?
 
 ## Reference files
 
