@@ -123,6 +123,44 @@
 
 ## trau
 
+### 1.1.0
+- **Re-documented against trau 2.34.** Every tool, flag, config key, status and gate
+  in the skill is now traced to the shipped source; the stale ones are gone.
+- **Five new MCP tools**, taking the reference to every tool the hub's `tools/list`
+  declares: `resume_run` (a settled row back to pending from its checkpoint, no
+  phase re-run), `requeue_ticket` (the quarantine undo over MCP), `retry_release`
+  (an epic parked at `awaiting-merge` handed back), `get_config` (resolved config
+  with layers, secrets masked) and `list_worktrees` / `get_costs`.
+- **`steer_agent kind=keys`**: whitespace-separated key names typed raw into a live
+  terminal dialog, landing only in a session already running and expiring 30 seconds
+  after queueing.
+- **Hold vocabulary is real now.** `queue_status` carries `held_gate` beside
+  `held` / `held_reason` / `held_since`, and the ten gates are split into deliberate
+  waits and symptoms. The QA gate turns out not to be a hold at all — it is the item
+  status `awaiting-qa`.
+- **Config lives in the hub database.** The user and project layers are rows
+  (ADR 0051), not `~/.trau.ini` and `<repo>/.trau.ini`; `./trau.ini` is the last file
+  layer. Adds `trau config get / export / import`, and says plainly that secrets are
+  stored clear-text with file permissions as the only boundary.
+- **No lane cap.** `WORKTREE_PARALLEL` is gone (ADR 0047): a worktree repo runs every
+  eligible queued ticket at once, and the spend caps are the only throttle.
+- **Run data is not on disk.** `.trau/runs/**`, `build.log` and `*.pty.log` are
+  removed throughout — checkpoints, artifacts, phase logs, events and transcripts are
+  hub-database rows (ADR 0008), read through `get_run`, `trau forensics` and the web
+  Run detail.
+- **New `references/states.md`**: queue item statuses, hold gates, pause classes and
+  run phases as tables, each with what an operator should actually do.
+- New operations recipes: the review feedback loop (`REVIEW_GATE`, bounded fix rounds,
+  `awaiting-changes`), halts and the hub's Unblock prompt, epics and parked epics,
+  Publish sessions, config sharing, and `trau dump`.
+- New CLI coverage: `dump`, `config …`, `hub remote` (Tailscale Serve — no token, the
+  bind stays loopback), `worktree test-setup`, `--retry-release`, `--parent`,
+  `--worktree`, `--no-serve`; `trau watch` corrected — it takes no path.
+- Auth: state-changing routes refuse cross-site browser requests on every bind, and
+  `SERVE_ALLOW_REGISTER` is a second gate on repo registration off loopback. Also
+  warns that the hub's per-session `trau-grill` / `trau-publish` MCP endpoints are not
+  the hub MCP.
+
 ### 1.0.0
 - Initial release of the Trau operator skill: drive the autonomous, ticket-driven
   development loop (trau.sh) from any agent.
