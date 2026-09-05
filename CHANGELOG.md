@@ -135,6 +135,69 @@
 
 ## trau
 
+### 1.2.0
+- **Re-documented against trau v2.53.0** (main at 2026-09-05; the skill was written
+  against 2.34). Every tool, flag, key, status, gate and class was re-traced to the
+  shipped source and the 21 ADRs (0054–0074) landed since; SKILL.md now names the
+  version it describes.
+- **Install is license-gated.** Homebrew, Scoop and winget are retired and frozen at
+  v2.39.0; the path is `curl -fsSL https://get.trau.sh/install.sh |
+  TRAU_LICENSE_KEY=<key> sh`, then `trau license set|status`, `trau update
+  [--check]` and Settings → Updates (ADR 0062). A `trau --version` ≤ 2.39.0 is the
+  stale-install tell.
+- **The recovery ladder is inverted.** `resume_run` / `trau --resume <ID>` now
+  re-enters a *quarantined* run from whatever its checkpoint durably holds (PR →
+  `pr_open`, commit → `verified`, branch → `built`) and un-quarantines the tracker;
+  `requeue_ticket` / `trau --requeue` is the start-fresh path, and the CLI form now
+  puts the hub queue row back to `pending` itself. `trau takeover` corrected: it
+  resumes a *parked* ticket and refuses while a run is live — it never stops one.
+- **Quarantine is not "verify tried twice" any more.** `MAX_BUGFIXES` and
+  `MAX_ITERATIONS` default to unlimited; the give-up causes are review rounds
+  exhausted on a ticket PR (`MAX_REVIEW_ROUNDS` default 10), CI red after repairs,
+  a closed PR, unsyncable conflicts or a budget cap. A cap exit with children left
+  is the new `capped` class, re-queued, not quarantined.
+- **Folder repos run lanes and take epics.** Under `WORKTREES=1` a ticket with a
+  `Repo: a, b` first line runs isolated — one linked worktree, app and lane database
+  per declared child, unlimited lanes — and a ticket declaring no child is refused
+  up front; an epic pinned to one child runs in that child's checkout (ADR 0057), an
+  unpinned one runs as a sequential group (ADR 0058). Replaces "a Folder repo runs
+  no worktrees and refuses an epic".
+- **Review trust is a ladder, not a Bitbucket ADMIN grant** (ADR 0064):
+  `TRUSTED_REVIEWERS` → private repo → membership → permission API → unknown, and
+  unknown *parks* `awaiting-changes` until someone vouches. Adds `REVIEW_RESOLVE`,
+  review rounds and `REVIEW_GATE` on epic PRs, the `address-review` REST path.
+- **Vocabulary corrected in `states.md`:** `awaiting-pick` and `PICK_ROUNDS` are
+  gone (ADR 0059); `skipped` means a duplicate of an epic child queued ahead, not an
+  `on_fault=skip` fault (those settle `failed`); the `parked-epic` gate is `parked`
+  and covers parked tickets; new `team-drift` gate; `parked` is a defined set
+  including the unfinalized epic (ADR 0062); the failure classes (`stopped`,
+  `capped`, `requeued`, …) and the 13 pause reasons (`tool_unavailable`,
+  `forge_outage`, `commit_probe_failed`, …) are tabled for the first time, along
+  with the `releasing` / `awaiting-qa` phases and instance session states.
+- **Four new MCP tools:** `add_project_repo`, `reveal_secret` (hidden from
+  `tools/list` until a repo sets `SECRET_REVEAL=admin`; mandatory reason; audited),
+  `list_deleted_tickets` and `restore_ticket` (a deleted ticket leaves a tombstone
+  that blocks every later sync). `start_queue acknowledge_drift`, `get_run ref=<run
+  URL>` (ADR 0056), `create_ticket blocked_by / blocks / repos`, richer
+  `list_repos` / `queue_status` / `list_worktrees` payloads, REST method
+  corrections, and a warning that `…/secrets/resolve` is unaudited.
+- **New CLI coverage:** `trau secret set|unset|list|get`, `trau worktree init`,
+  `trau forensics log` (the child's console — the one on-disk run artifact),
+  `config get --reveal`, `config export|import --section`, `test-setup --child` on
+  folder repos, `--skip`, `--qa-gate`; doctor's real check set (*team config*,
+  *review trust*, *worktree file*, *serena*, *license*, *crash reports*, …).
+- **Config: lanes and files.** Per-lane databases are trau's job (`WORKTREE_DB`,
+  ADR 0070), a committed `.trau/worktree.yaml` replaces `WORKTREE_COPY` /
+  `WORKTREE_SETUP_CMD` / `APP_SERVE`+`APP_START_CMD` per section, and
+  `.trau/config.team.ini` drift on merge-affecting keys fails doctor and blocks the
+  drain. Adds `auggie` (USD caps never fire on it), `SECRET_REVEAL`,
+  `TRAU_LICENSE_KEY`, `CRASH_REPORTS`, `NOTIFY` / `HOLD_REMINDER_HOURS`, `PLUGINS`,
+  `SERENA`, `EPIC_ADOPT_PARENT`, `BROWSER_ISOLATION`, `CLAUDE_OUTPUT_STYLE`, phase
+  routes re-resolved per agent call (ADR 0069), presets (ADR 0063).
+- New operations recipes: install/upgrade, ticket secrets, plugins, notifications,
+  workspaces (ADR 0073 — a UI grouping, not `SERVE_WORKSPACE`), support bundle vs
+  crash reports; the babysitting brief and hard stops now cover secrets.
+
 ### 1.1.0
 - **Re-documented against trau 2.34.** Every tool, flag, config key, status and gate
   in the skill is now traced to the shipped source; the stale ones are gone.

@@ -3,3 +3,6 @@
 # Local tooling / IDE
 .idea/
 .serena/
+
+# Skill eval workspaces
+skills/*-workspace/
