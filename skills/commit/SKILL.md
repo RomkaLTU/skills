@@ -1,6 +1,6 @@
 ---
 name: commit
-version: 1.0.0
+version: 1.0.1
 disable-model-invocation: true
 description: >-
   Turn the working tree into atomic commits written in Trau's commit convention:
@@ -203,12 +203,21 @@ wants a push, they will ask.
   `Co-authored-by: Claude`, no `Co-Authored-By:` variant, no `Claude-Session:`
   line, no `🤖 Generated with Claude Code`, no "written with an assistant" in the
   body. Strip them if your environment adds them by default — for Claude Code
-  that is `includeCoAuthoredBy: false` in `settings.json`, which is on unless
-  someone turned it off. Prose alone cannot suppress a trailer the harness
-  appends, so check the result of `git log -1` after the first commit of a session
-  and fix the setting once rather than fighting it every time. The reason is
-  narrow and practical: these lines are noise to every human who reads the log
-  for the next decade, and they end up quoted verbatim in generated release notes.
+  that is an `attribution` block in `settings.json`, on unless someone turned it
+  off:
+
+  ```json
+  "attribution": { "commit": "", "sessionUrl": false }
+  ```
+
+  `commit: ""` drops the co-author trailer and `sessionUrl: false` drops the
+  `Claude-Session:` link, which is a separate switch and survives on its own.
+  (The older `includeCoAuthoredBy: false` still works but is deprecated, and it
+  never covered the session link.) Prose alone cannot suppress a trailer the
+  harness appends, so read `git log -1` after the first commit of a session and
+  fix the setting once rather than fighting it every time. The reason is narrow
+  and practical: these lines are noise to every human who reads the log for the
+  next decade, and they end up quoted verbatim in generated release notes.
 - **No editorializing.** "finally fix this annoying bug" is `fix(...)`. State
   what happened; the log is a record, not a mood.
 - **No meta-commentary about the process** — which agent phase produced the

@@ -70,7 +70,7 @@ refactor(orders): extract shipping calculation to service
 ## Hard restrictions
 
 - **Never mention AI tools, assistants, or code generation** in commit messages. No `Co-Authored-By: Claude`, no "generated with", no meta-commentary about the development process. These are noise to every other developer who reads `git log` for the next decade.
-  - **This rule needs harness help to hold.** Some agents append a co-author trailer automatically at commit time — Claude Code does, via `includeCoAuthoredBy` in `settings.json` (default **on**) — and no amount of prose here suppresses it. If commits keep getting a `Co-Authored-By` line despite this rule, set `includeCoAuthoredBy: false`; the setup wizard detects this and offers to flip it.
+  - **This rule needs harness help to hold.** Some agents append attribution automatically at commit time — Claude Code does, default **on** — and no amount of prose here suppresses it. If commits keep getting a `Co-Authored-By` or `Claude-Session:` line despite this rule, set `"attribution": { "commit": "", "sessionUrl": false }` in `settings.json`. `commit: ""` drops the co-author trailer; `sessionUrl: false` drops the session link, which is a separate switch and survives on its own. (The older `includeCoAuthoredBy: false` still works but is deprecated, and never covered the session link.) The setup wizard detects this and offers to flip it.
 - **Don't editorialize.** "Finally fixes this annoying bug" → just `fix(...)`. State facts.
 - **Don't bundle unrelated changes "for convenience".** If a commit message has three sentences each describing a different change, split it.
 

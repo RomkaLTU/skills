@@ -132,15 +132,22 @@ Default proposal: `handoff` (all three true). This is the safe default — expli
 
 ### Suppress the AI co-author trailer
 
-dev-flow's commit convention forbids a `Co-Authored-By: Claude` / "generated with" trailer (Step 6). But some agent harnesses append that trailer *themselves* at commit time — Claude Code does, via `includeCoAuthoredBy` in `settings.json`, which **defaults to on** — so the convention can't hold on prose alone. Check it, and offer to fix it like the other wizard steps:
+dev-flow's commit convention forbids a `Co-Authored-By: Claude` / `Claude-Session:` / "generated with" trailer (Step 6). But some agent harnesses append those *themselves* at commit time — Claude Code does, and it **defaults to on** — so the convention can't hold on prose alone. Check it, and offer to fix it like the other wizard steps:
 
 ```bash
-# Claude Code: look for the setting in project, then user settings
-grep -s includeCoAuthoredBy .claude/settings.json .claude/settings.local.json ~/.claude/settings.json
+# Claude Code: look for either key in project, then user settings
+grep -sE 'attribution|includeCoAuthoredBy' .claude/settings.json .claude/settings.local.json ~/.claude/settings.json
 ```
 
-- Already `false` everywhere → say nothing, it's handled.
-- Unset or `true` → offer: "Your agent auto-adds a `Co-Authored-By` trailer to commits, which fights dev-flow's no-AI-authorship rule. Set `includeCoAuthoredBy: false` so it stops? (recommended)". On yes, set `"includeCoAuthoredBy": false` — in the user `settings.json` by default, or the project's `.claude/settings.json` if the team wants it enforced repo-wide.
+- Already suppressed → say nothing, it's handled. That means either an `attribution` block with `"commit": ""`, or the older `includeCoAuthoredBy: false`.
+- Unset, or `attribution.commit` non-empty → offer: "Your agent auto-adds a `Co-Authored-By` trailer to commits, which fights dev-flow's no-AI-authorship rule. Turn it off? (recommended)". On yes, write:
+
+  ```json
+  "attribution": { "commit": "", "sessionUrl": false }
+  ```
+
+  in the user `settings.json` by default, or the project's `.claude/settings.json` if the team wants it enforced repo-wide. Both keys earn their place: `commit: ""` drops the co-author trailer, and `sessionUrl: false` drops the `Claude-Session:` link, which is governed separately and otherwise survives. Note that `sessionUrl: false` also removes the session link from PR bodies — mention that when you offer it.
+- Only `includeCoAuthoredBy: false` is set → it still works, so leave it unless the user is seeing a `Claude-Session:` line, which that key never covered. Then offer the `attribution` block above, which supersedes it.
 - Host agent has no equivalent setting → skip; nothing to do.
 
 This is the only thing that actually enforces the no-AI-authorship rule; without it, every commit carries the trailer despite the prose.
