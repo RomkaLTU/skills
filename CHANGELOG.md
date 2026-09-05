@@ -1,5 +1,27 @@
 # Changelog
 
+## commit
+
+### 1.0.0
+- **First release.** Extracts Trau's commit convention into a standalone,
+  explicitly-invoked skill (`/commit`, optionally `/commit COD-123`): read the
+  repo's own convention first (commitlint config, `CONTRIBUTING.md`/`AGENTS.md`,
+  the last twenty subjects), group the working tree into atomic
+  dependency-ordered commits, write a Conventional Commits subject that is
+  imperative, lower-case and under 72 characters, stage by name, and commit.
+  Stops at the commit — no push, no PR, no tracker transition.
+- **The ticket is optional.** It is resolved from the invocation argument, then
+  the branch name, then `.dev-flow/config.json`. When none is found the commit
+  says nothing about tickets at all: no `Refs:` trailer, and no `(no-issue)`,
+  `NO-JIRA`, `Refs: none` or body sentence standing in for one.
+- **No AI attribution, enforced in two places** — the message rules forbid
+  `Co-authored-by:`, `Claude-Session:` and generation banners, and the skill
+  points at `includeCoAuthoredBy: false` because prose cannot suppress a trailer
+  the harness appends.
+- `disable-model-invocation: true`, matching dev-flow: committing has side
+  effects, and dev-flow's handoff already asks the user to run the commit skill
+  by hand.
+
 ## dev-flow
 
 ### 1.8.0
