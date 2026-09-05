@@ -2,6 +2,14 @@
 
 ## commit
 
+### 1.0.1
+- **Point at the current attribution setting.** The no-AI-attribution rule told
+  readers to set `includeCoAuthoredBy: false`, which is deprecated in Claude
+  Code's settings schema and never governed the `Claude-Session:` link — so a
+  reader who followed it still got a session trailer in every commit. The rule
+  now gives `"attribution": { "commit": "", "sessionUrl": false }`, says which
+  key does what, and notes the old key still works.
+
 ### 1.0.0
 - **First release.** Extracts Trau's commit convention into a standalone,
   explicitly-invoked skill (`/commit`, optionally `/commit COD-123`): read the
@@ -23,6 +31,16 @@
   by hand.
 
 ## dev-flow
+
+### 1.8.1
+- **Point at the current attribution setting.** Step 6, the commit-conventions
+  reference and the setup wizard all told readers to set
+  `includeCoAuthoredBy: false` — deprecated, and blind to the `Claude-Session:`
+  link, so commits kept carrying a trailer the convention forbids. All three now
+  give `"attribution": { "commit": "", "sessionUrl": false }`. The wizard greps
+  for either key, treats an existing `includeCoAuthoredBy: false` as already
+  handled, and warns that `sessionUrl: false` also drops the session link from
+  PR bodies.
 
 ### 1.8.0
 - **Time estimates are confirmed once, at close-out — not when the PR opens.**

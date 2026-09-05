@@ -1,6 +1,6 @@
 ---
 name: dev-flow
-version: 1.8.0
+version: 1.8.1
 disable-model-invocation: true
 description: >-
   Run a ticket-driven git workflow: choose the base branch, tie work to a project-management ticket, name branches and commits, open PRs against the right base, verify before review, and move ticket statuses. Use when starting work from a ticket id or bare number, kicking off a plan/spec/PRD/todo file, asking what branch to use, opening a PR, syncing tracker status after branch or merge work, or setting up/reconfiguring `.dev-flow/config.json` for tracker, base branch, PR, commit, or time-tracking settings. Do not use for code review of an existing PR, one-off commits on an already-created branch, breaking a plan into many issues, writing PRDs, configuring CI, release/integration branch promotion, or generic git how-to questions.
@@ -353,7 +353,7 @@ Either way, the commit content follows `references/commit-conventions.md`. The h
 - **Atomic, dependency-ordered commits** — one concern per commit, foundations before consumers, refactors separated from features.
 - **Conventional Commits format** by default: `<type>(<scope>): <subject>` + optional body + `Refs: <TICKET-ID>` trailer. Match the project's existing style if `git log` shows something different.
 - **Imperative mood**, subject under 72 chars, body wrapped at 100.
-- **Never mention AI/assistant authorship**. No `Co-Authored-By: Claude`, no "generated with" footer. If your agent appends a co-author trailer automatically (Claude Code does, via `includeCoAuthoredBy` in `settings.json`, default on), prose here can't suppress it — set that to `false`; the setup wizard offers this.
+- **Never mention AI/assistant authorship**. No `Co-Authored-By: Claude`, no `Claude-Session:` link, no "generated with" footer. If your agent appends those automatically (Claude Code does, default on), prose here can't suppress them — set `"attribution": { "commit": "", "sessionUrl": false }` in `settings.json`; the setup wizard offers this.
 
 > The escape hatch (ad-hoc fixes) is separate: there the user has *explicitly* asked you to commit/push on the current branch, so `handoff` doesn't gate it — follow the **Escape hatch** section instead.
 
