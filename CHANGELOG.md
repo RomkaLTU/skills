@@ -175,6 +175,71 @@
 
 ## trau
 
+### 1.3.0
+- **Re-documented against trau v2.67.0** (main at 2026-09-26; 1.2.0 described
+  2.53.0). Every tool, command, key, status, gate and class was re-traced to the
+  source and the ADRs landed since (0075–0142).
+- **The hub MCP more than doubled: 33 → 75 tools**, all now in `mcp.md`, grouped read
+  / control / steer / destructive as the hub groups them:
+  - run evidence: `get_artifact`, `get_run_log`, `get_phase_logs`, `get_run_diff`,
+    `list_proofs`, `get_run_spend`, `query_events`;
+  - finding tickets: `search_issues`, `get_issue`, `mark_ready`, `assign_ticket`,
+    `pin_provider`, `archive_ticket`;
+  - queue control: `run_queue_item`, `stop_queue_item`, `resume_queue_item`,
+    `stop_queue`, `acknowledge_drift`;
+  - recovery: `address_review`, `advance_run`, `settle_adr_conflict`;
+  - QA: `approve_qa`, `reject_qa`, `qa_accounts_list|add|remove`;
+  - ticket secrets: `set_ticket_secret`, `unset_ticket_secret`, `list_ticket_secrets`;
+  - operator checklist: `get_checklist`, `add_checklist_item`,
+    `update_checklist_item`, `delete_checklist_item`;
+  - config, prompts and lessons: `set_config`, `list_prompts`,
+    `set_prompt_override`, `clear_prompt_override`, `list_lessons`, `add_lesson`;
+  - connections: `list_connections`, `test_connection`, `remove_connection`.
+  - Diagnosis now starts from these tools; `trau forensics` is the shell fallback.
+- **Install and update need no key.** `curl -fsSL https://get.trau.sh/install.sh |
+  sh` installs to `~/.local/bin`; the hub's lock screen starts the 14-day trial or
+  takes a key. Documents the four license states (`trial`, `licensed`, `grace`,
+  `locked`), the locked-installation refusal, and `trau license trial|portal|
+  installs|release`.
+- **New CLI coverage:**
+  - `trau adr authorize|keep`, `trau config set`, `trau qa accounts
+    list|add|remove|discover|check`, `trau proofs write-test`;
+  - `trau browser status|check|setup`, `trau skill show|export|status|check|install`;
+  - `trau connect linear|jira|bitbucket`, `trau connections`, `trau ssh recover`,
+    `trau crashreport`, `--complexity-band`;
+  - doctor's verdict line and its three check groups.
+- **New recipes in `operations.md`:**
+  - QA: the hold (`awaiting-qa` frees the lane; the verdict is the user's), sign-in
+    accounts, and where proofs go and how long they are kept;
+  - ADR-conflict settlement, the local-merge-held pause, and the standing drain
+    (`QUEUE_AUTO_DRAIN`);
+  - webhook intake (`HOOK_*_SECRET`), service connections (OAuth for Linear, Jira and
+    Bitbucket; `gh` for GitHub), the operator checklist, prompt overrides and lessons;
+  - keeping this skill current (`SKILL_UPDATE_CHECK`, and trau's embedded copy vs
+    this one).
+- **Safety rules widened in `SKILL.md`:**
+  - The destructive list now matches the hub's own 23-tool group.
+  - It names what arms a drain besides `start_queue`: `approve_qa`/`reject_qa`,
+    webhooks, and `QUEUE_AUTO_DRAIN`, which `pause_queue` does not hold.
+  - Some decisions are the user's alone: the QA verdict, ADR conflicts, drift.
+  - Settings that change what leaves the machine are set only when asked:
+    `AI_ASSESSMENT`, `EXPERIMENTAL_*`, `TWG_ENABLED`, prompt overrides.
+  - A locked install starts no new work.
+- **Vocabulary:**
+  - New hold gates `daily-cap`, `license` and `idle`, and gates split into waits /
+    waits on a person / symptoms.
+  - New `no-change` status and `no_change` class.
+  - New pause reasons `adr_conflict`, `adr_dir` and `local_merge_blocked`.
+  - `branch_held` is only a display label now; the pause reason is `worktree_held`.
+- **Config:** `ADR_POLICY`/`ADR_DIR`, `AI_ASSESSMENT`, `MODELS_BY_COMPLEXITY` and
+  `COMPLEXITY_*`, `PICK_LABELS`, `BROWSER_HARNESSES`, `QUEUE_AUTO_DRAIN`, `HOOK_*` /
+  `SENTRY_*`, `HUB_PEER_*`, `SKILL_UPDATE_CHECK`, `TWG_*`, and the `*_CONNECTION` /
+  `*_OAUTH_*` keys; hub-created Projects start on `TRACKER_PROVIDER=internal`.
+- **Removed from trau, removed here:** `TEAM_SYNC` (git-ref team sync), the plugin
+  system (`PLUGINS`, `.trau/plugins`), the single-value `BROWSER_HARNESS`, and video
+  and trace proofs (screenshots only). "There is no `trau config set`" and "no MCP
+  tool for the QA verdict" are no longer true.
+
 ### 1.2.0
 - **Re-documented against trau v2.53.0** (main at 2026-09-05; the skill was written
   against 2.34). Every tool, flag, key, status, gate and class was re-traced to the
