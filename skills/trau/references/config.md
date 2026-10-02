@@ -5,6 +5,22 @@ every knob exhaustively. This reference covers the layering model and the knobs 
 answer operator questions — "why didn't it pick my ticket", "why is the drain
 serial", "why did it stop at the PR", "why did the drain refuse to arm".
 
+## Contents
+
+- [Layering](#layering)
+- [Repo-committed files](#repo-committed-files)
+- [Tracker and eligibility](#tracker-and-eligibility)
+- [Loop behavior](#loop-behavior)
+- [AI assessment and models by complexity](#ai-assessment-and-models-by-complexity)
+- [Budgets](#budgets)
+- [Verify](#verify)
+- [Worktrees and parallelism](#worktrees-and-parallelism)
+- [The hub (`SERVE_*`)](#the-hub-serve_)
+- [Providers and credentials](#providers-and-credentials)
+- [Research and interviews](#research-and-interviews)
+- [Cost and cadence](#cost-and-cadence)
+- [Ticket comments](#ticket-comments)
+
 ## Layering
 
 Verbatim from `trau --help`, lowest to highest precedence:
@@ -154,7 +170,7 @@ The pick gate and `PICK_ROUNDS` no longer exist (ADR 0059).
 
 | Key | Meaning |
 | --- | --- |
-| `AI_ASSESSMENT` | `0` (default). **Hub-wide**, user layer or hub environment only, needs an active license key. The one consent for the Trau assessment service: Complexity badges and readiness signals, lesson classification and recall, skill relevance, grill question checks, duplicate checks of proposed tickets, repair-stall checks. On, the hub sends ticket titles, descriptions and comments, verify failure evidence, recalled lessons, package signals and grill questions (the service does not retain them). No answer changes a pick or the Queue order. The retired per-feature assessment keys do nothing. |
+| `AI_ASSESSMENT` | `0` (default). **Hub-wide**, user layer or hub environment only, needs an active license key. The one consent for the Trau assessment service: Complexity badges and readiness signals, lesson classification and recall, skill relevance, grill question checks, duplicate and split checks of proposed tickets, repair-stall checks. On, the hub sends ticket titles, descriptions and comments with the titles, descriptions and statuses of each ticket's sub-issues, verify failure evidence, recalled lessons, package signals, grill questions, and each Interview proposal's ticket text with its proposed hierarchy (the service does not retain them). The split check runs before an Interview proposal's review: a proposed ticket that holds independent work no other proposed ticket covers sends the Interview agent back for one revision, and any advice left shows beside that ticket — it never blocks a create. No answer changes a pick or the Queue order. The retired per-feature assessment keys do nothing. |
 | `MODELS_BY_COMPLEXITY` | `0` (default, per repo, needs `AI_ASSESSMENT`). A ticket with a usable Complexity score runs under the saved Preset its band maps to — `COMPLEXITY_LOW_PRESET` / `_MEDIUM_PRESET` / `_HIGH_PRESET`, mapped on the Models page and looked up inside the run's Provider. The band is fixed at ticket start; no score, no mapping or no such Preset keeps the configured Routes. Ticket text never names a Model. Turning it on for a claude or codex repo seeds missing `Complexity low` / `Complexity high` Presets into empty band keys. Run log: `complexity 7 -> band high -> Preset "deep"`. |
 | `COMPLEXITY_LOW_MAX` / `COMPLEXITY_HIGH_MIN` | `3` / `7` — band limits on the 1–10 score; an invalid pair falls back to 3 and 7 with a warning. |
 | `COMPLEXITY_ESCALATE_AFTER` | `2` (`0` = off; needs only `MODELS_BY_COMPLEXITY`). After that many failed verify rounds every later agent call of the ticket runs one band higher, capped at high; no band counts as medium. Survives a resume. `trau --complexity-band <band>` (or `band` on a Queue add) pins one run's band without sending ticket text. |

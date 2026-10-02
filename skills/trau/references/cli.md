@@ -22,6 +22,25 @@ One quirk of the help scan: `forensics`, `dump`, `steer`, `secret`, `config`, `q
 print their own usage on `--help`; `doctor`, `hub …`, `watch`, `takeover`,
 `worktree …`, `ssh`, `stop` and `serve` print the top-level usage instead.
 
+## Contents
+
+- [Install, license, update](#install-license-update)
+- [Run the loop](#run-the-loop)
+- [Inspect — read-only, always safe](#inspect--read-only-always-safe)
+- [Forensics — incident queries over run history](#forensics--incident-queries-over-run-history)
+- [Watch, steer, take over](#watch-steer-take-over)
+- [Recover](#recover)
+- [Read, write and share configuration](#read-write-and-share-configuration)
+- [Ticket secrets](#ticket-secrets)
+- [QA accounts and proofs](#qa-accounts-and-proofs)
+- [Browser harnesses](#browser-harnesses)
+- [Operator skill](#operator-skill)
+- [Service connections](#service-connections)
+- [Support bundle and crash reports](#support-bundle-and-crash-reports)
+- [Worktree and transport plumbing](#worktree-and-transport-plumbing)
+- [Hub lifecycle](#hub-lifecycle)
+- [Where run data actually lives](#where-run-data-actually-lives)
+
 ## Install, license, update
 
 Distribution is **open** (ADR 0106, superseding ADR 0062's download gate): the

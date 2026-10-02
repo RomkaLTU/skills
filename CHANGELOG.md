@@ -175,6 +175,29 @@
 
 ## trau
 
+### 1.4.0
+- **Re-documented against trau v2.72.0** (main at 2026-10-02). The hub MCP grew
+  from 75 to 85 tools, and `mcp.md` now lists every one:
+  - Terminal sessions: `list_terminal_sessions`, `read_terminal_screen`;
+  - Data sources: `list_data_sources`, `describe_data_source`;
+  - checklist evidence checks: `check_checklist_item`, `check_checklist`,
+    `promote_checklist_item`, and the item's `check` command;
+  - Publish website task and Worker deploys: `publish_website_status`,
+    `retry_publish_website`, `worker_deploy_status`.
+- **New `references/hub-features.md`** for the hub features an operator meets but
+  does not drive: Terminal sessions, the App page and its checkout hold, the
+  Assistant, Data sources, and Report-derived ADRs.
+- **New hold gate `app-session`** (`Waiting on the App`), a deliberate wait: never
+  requeue, reset or quarantine for it.
+- **New safety rules:** never stop a sibling lane to make room for a recovery tool;
+  never type into a Terminal session or drive the Assistant; set
+  `SERVE_ALLOW_TERMINAL` or `DATA_ASK_SAMPLES` only on the user's word.
+- Smaller updates: the `testinstructions` artifact kind, the split check of
+  `AI_ASSESSMENT`, Stacked epic eligibility, the Publish website task, and the
+  native Windows installer.
+- `cli.md`, `config.md`, `mcp.md` and `operations.md` now start with a table of
+  contents.
+
 ### 1.3.0
 - **Re-documented against trau v2.67.0** (main at 2026-09-26; 1.2.0 described
   2.53.0). Every tool, command, key, status, gate and class was re-traced to the

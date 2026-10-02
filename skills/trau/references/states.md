@@ -54,6 +54,7 @@ The hub's Loop screen tones these `info`: each ends by itself.
 | `release` | An epic is releasing — merging its stack — and holds the repo while it does. |
 | `publish` | A Publish session holds the repo's queue (ADR 0053). Not the same thing as `release`. |
 | `branch-held` | A branch a queued item needs is checked out in another worktree; it starts when that lane frees it. |
+| `app-session` | An App session (the hub's App page) holds the repo's checkout, and the next row would run in that checkout or change it. The Loop page reads `Waiting on the App`, the run log `waiting for <checkout>`. Not a fault: never requeue, reset or quarantine for it — ask the user to stop the app on the App page, or to turn on worktrees so the ticket runs in its own lane (`references/hub-features.md` § App page). |
 | `daily-cap` | A `QUEUE_AUTO_DRAIN` repo's run came back `capped`; the drain starts nothing until local midnight (`daily budget reached, resumes after <date>`). |
 
 `held_gate: idle` is not a spawn hold at all: a `QUEUE_AUTO_DRAIN` drain that is armed

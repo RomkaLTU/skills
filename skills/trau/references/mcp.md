@@ -17,6 +17,15 @@ In the hub's web UI, the **Hub** page's *External agents (MCP)* card renders the
 same setup snippets with the endpoint already resolved for however the user reached
 the hub.
 
+## Contents
+
+- [Auth](#auth)
+- [Per-session MCP endpoints are not the hub MCP](#per-session-mcp-endpoints-are-not-the-hub-mcp)
+- [Connecting a client](#connecting-a-client)
+- [Tool reference](#tool-reference)
+- [Read-only REST fallback](#read-only-rest-fallback)
+- [Worked examples](#worked-examples)
+
 ## Auth
 
 The endpoint inherits the hub's exposure policy:
@@ -188,7 +197,7 @@ mandatory (`worktrees`), its folder `children`, its `project` (`{id, name}` or
 
 Each tool's own MCP description states its full contract (argument shapes, what is
 refused and why), so `tools/list` is the authoritative schema; the tables below are
-the map. **75 tools** are registered, in four risk groups — read 28, control 23,
+the map. **85 tools** are registered, in four risk groups — read 34, control 27,
 steer 1, destructive 23. The group is the tool's MCP annotation: read tools carry
 `readOnlyHint`, destructive ones `destructiveHint`. `reveal_secret` is hidden from
 `tools/list` until some listed repo sets `SECRET_REVEAL=admin`.
@@ -227,6 +236,8 @@ Tickets, config and knowledge:
 | `qa_accounts_list` | The repo's QA sign-in accounts: stable `id`, label, username, description, app URL binding, `secret_set` (never the secret), and `validation` (`unverified` \| `passed` \| `failed`, with `checked_at` and a redacted `reason`). |
 | `list_prompts` | The prompt catalog as the repo's runs see it (ADR 0017): placeholders, built-in default, hub-wide override, repo override, the scope the effective body comes from, and `effective_body`. `name` narrows it to one; an unknown name is a tool error. |
 | `list_lessons` | The lessons distilled from earlier runs, newest first; `ticket`, `phase`, `failure_type`, `tag` each match the whole value, case-insensitively. |
+| `list_data_sources` | The repo's Data sources — read-only database registrations the Data page reads: `id`, `name`, `engine` (`sqlite`, `pgsql`, `mysql`, `mssql`), the URL without its password, and `accept_writable` (true when the operator registered a credential that can write; always false on `mssql`). |
+| `describe_data_source` | One Data source (`source`, id or name): its tables, each table's columns with their types, and row counts (an estimate on a large table). Never a row value. |
 | `list_connections` | The service connections the hub signed in to (ADR 0139): `id`, `service`, `account`, `sites`, `expires_at`, `status` — never a token. `needs_reconnect` means the service refused the refresh token; the user signs in again under Settings → Connections. |
 
 Run history and evidence — prefer these over `trau forensics` when diagnosing a run.
@@ -236,13 +247,27 @@ Every one takes `repo` + `ticket`; a ticket that never ran is a tool error.
 | --- | --- |
 | `list_runs` | Every ticket that has run: settled phase, branch, PR, failure class, cost, and a `url` per run. Board order — earliest phase first — capped by `limit` (100, max 500). |
 | `get_run` | One run in depth: verdict, per-phase spend, High usage findings (`anomalies`), which artifacts exist (flagged, never inlined), event tail (`events`, default 20, max 100). Address it by `repo` + `ticket`, **or by `ref`** — the run page URL (`http://<hub>/runs/<repo>/<ticket>`, its `/live/` form) or `<repo>/<ticket>` (ADR 0056), passed exactly as the human gave it. The answer carries `url`; quote that back to humans. |
-| `get_artifact` | One artifact in full: `kind` is `handoff`, `rubric`, `verdict` or `buildnotes`. One the run never recorded is a tool error. |
+| `get_artifact` | One artifact in full: `kind` is `handoff`, `rubric`, `verdict`, `buildnotes` or `testinstructions` (the How to test procedure published to the ticket). One the run never recorded is a tool error. |
 | `get_run_log` | The child's console log (what `trau forensics log` reads): last `n` lines of the newest log (400 default, 5000 max, from its last 256 KiB); `full` reads the last 4 MiB. The answer's `offset` passed back as `after` pages forward; `truncated` says lines were dropped; `runs` lists older logs and `file` picks one. |
 | `get_phase_logs` | Each phase's captured output with its last-written time; `phase` narrows it to one. The raw terminal replay is not served. |
 | `get_run_diff` | What the run changed against its fork point, per file with line counts and patches — the live branch, else the snapshot stored at settle. A patch over 128 KiB, and every patch past 2 MiB total, is dropped and its file marked `truncated`; `max_patch_bytes` lowers the per-file limit. |
 | `list_proofs` | The browser verifier's screenshots and capture warnings with kind, phase, attempt, caption, harness; each screenshot's `url`, never its bytes. |
 | `get_run_spend` | Total tokens and dollars, and per phase tokens, dollars, turns, calls, metered or not, cache ratios (`trau forensics spend`). |
 | `query_events` | The repo's event log in chronological order, filtered by `ticket`, `kind`, `grep` (case-insensitive over kind, phase, message, fields) and `since` (RFC3339); `after` (an event id) pages forward; `limit` 200 default, 1000 max. `repo` alone is required. |
+
+Terminal sessions and the trau source repo's deploys:
+
+| Tool | What it does |
+| --- | --- |
+| `list_terminal_sessions` | The hub Terminal page's sessions of a repo, oldest first: `id`, permanent `handle` (an adjective-noun name such as `brave-otter` — use it when you name a session to the user), `name`, `label`, `title`, `kind` (`shell`, `agent`, `command`, `takeover`), `provider`, `state`, `exit_code`, `active` / `busy`, `last_prompt` (an agent session's last operator prompt, cut to 500 characters), `self`, and the TCP `ports` its process tree listens on. |
+| `read_terminal_screen` | What one session (`id`, or its handle) shows now: window `title` and each visible row as plain text, no colour, no scrollback. Read it to see what a dev server or a command printed. |
+| `publish_website_status` | The website task of the latest published Publish session of the trau source repo: `session_id`, `state` (`pending`, `running`, `succeeded`, `failed`), the version, draft branch, `pr_url`, `page_url`, `reason`, `attempts`. A failed task never means the release failed. |
+| `worker_deploy_status` | Whether the live trau-dist Cloudflare Worker matches `origin/main` for a repo with `deploy/worker`: `up_to_date`, `behind` (with `changed_files`), `unknown` or `unavailable` (with `reason`); checked at most every 5 minutes. Starting a deploy stays a hub UI click. |
+
+No terminal tool types into a session or opens, restarts or ends one — Terminal input
+stays with the operator. Off the machine both terminal tools answer
+`terminal_not_exposed` unless the hub sets `SERVE_ALLOW_TERMINAL=1`; never set it
+yourself, it lets a remote client open a shell with the hub's user rights.
 
 ### Control
 
@@ -278,10 +303,14 @@ Tickets, config and the rest:
 | `set_config` | Writes one `key`/`value` to the repo's project layer — or with `layer=user` the hub-wide user layer — through the settings page's validation; `unset: true` removes it from that layer. Unknown keys, out-of-options values, unsupported model-effort pairs and a hub-wide key (`EXPERIMENTAL_*`, `AI_ASSESSMENT`) outside `layer=user` are refused and nothing is stored. `TRACKER_PROVIDER=internal` drops the mirrored tracker issues and is refused while the queue holds tracker work. Answers `stored`, `effective`, `effective_layer`, and `overridden_by` when a higher layer (the hub's environment, say) still decides what a run reads. A secret answers `set: true`, never the value. |
 | `qa_accounts_add` | Files one QA account: `label` (required, unique in the repo), `username`, `secret` (write-only), `description`, `source` (`manual` default \| `agent`), `app_url_id` (must be this repo's). Always starts `unverified`; only a sign-in check records validation. |
 | `set_ticket_secret` | Stores `value` under `name` on a ticket; every agent of its next run gets it as an env var, and an epic's secret reaches each child that doesn't set the same name. `name` matches `^[A-Z][A-Z0-9_]*$` (≤ 64 chars, not reserved); value non-empty, ≤ 64 KiB. Answers `name` and `set: true`; forensics logs `secret_set` without the value. **Never echo the value.** A settled run needs `resume_run` to pick it up. |
-| `add_checklist_item` | Appends a step to a ticket's operator checklist with source `operator`: `title`, `timing` (`before_merge` \| `after_merge`) and `priority` (`required` \| `optional`) required, `detail` optional. |
-| `update_checklist_item` | Changes one item by `id`; omitted fields keep. `done: true` checks it and records this MCP client as `done_by` — only when the user says the step is done. |
+| `add_checklist_item` | Appends a step to a ticket's operator checklist with source `operator`: `title`, `timing` (`before_merge` \| `after_merge`) and `priority` (`required` \| `optional`) required, `detail` and `check` (one read-only command that proves the step) optional. |
+| `update_checklist_item` | Changes one item by `id`; omitted fields keep. `done: true` checks it and records this MCP client as `done_by` — only when the user says the step is done. `check=""` removes the check command; a changed command deletes the item's Tick proposal. |
+| `check_checklist_item` | Starts an evidence check on one open item (`id`): a headless agent runs read-only commands in the project checkout and writes a Tick proposal — `proposal_verdict` `done` / `not_done` / `cannot_tell` with `proposal_evidence`. Returns at once with `checking: true`; read `get_checklist` until it is false. It never ticks the item. Refused on a done item or while the ticket already runs a check. |
+| `check_checklist` | One evidence check for every open item of a ticket in one agent call; done items are skipped, and an item the agent gives no verdict gets `cannot_tell`. Same polling and refusals. |
+| `promote_checklist_item` | Files an item that is real work as a new tracker ticket (or internal issue) with no label and no parent, so a person triages it, and links it (`linked_ticket`); `title` and `description` optional. When that ticket is done the hub ticks the item once. Refused when the item already links a ticket. |
 | `add_lesson` | Records a lesson (`lesson` required; `ticket`, `phase`, `failure_type`, `attempted_fix`, `evidence[]`, `result`, `tags[]`, `recorded_at` optional) that later runs on similar work read. |
 | `add_project_repo` | Adds a repo to a hub Project (`project` by id or display name) — by a name the hub knows, **or an absolute path it does not know yet**, which registers it on the way in. Seeds the project's tracker keys into the repo; a repo another project holds is moved. Off loopback it needs `SERVE_ALLOW_REGISTER=1` on top of the token. |
+| `retry_publish_website` | Reruns a **failed** website task of a published Publish session (`session_id`) with the evidence it kept: website work only — no release gate, tag, `latest.json` change or version decision. A repeat call starts nothing new. Off loopback it needs `SERVE_ALLOW_REGISTER=1`. Ask the user first. |
 | `test_connection` | Probes one connection by `id`: refreshes a near-expiry token and reads the account. Answers `ok`, `account`, `refreshed`, or `error`. Off loopback it needs `SERVE_ALLOW_REGISTER=1`. |
 
 ### Steer

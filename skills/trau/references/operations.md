@@ -6,6 +6,34 @@ are used where both surfaces exist; substitute the CLI equivalents from
 **destructive** group (`references/mcp.md`) needs the user's go-ahead before you call
 it, whatever the recipe below is doing.
 
+## Contents
+
+- [Install or upgrade trau](#install-or-upgrade-trau)
+- [Keep the operator skill current](#keep-the-operator-skill-current)
+- [Preflight a repo](#preflight-a-repo)
+- [Queue work and drain it](#queue-work-and-drain-it)
+- [Standing drain](#standing-drain)
+- [Monitor / babysit an armed drain](#monitor--babysit-an-armed-drain)
+- [Diagnose a settled failure](#diagnose-a-settled-failure)
+- [Recover a halted or quarantined run](#recover-a-halted-or-quarantined-run)
+- [QA hold](#qa-hold)
+- [QA sign-in accounts](#qa-sign-in-accounts)
+- [QA proofs: destination and retention](#qa-proofs-destination-and-retention)
+- [Hub lifecycle and exposure](#hub-lifecycle-and-exposure)
+- [Epics](#epics)
+- [Parallel lanes](#parallel-lanes)
+- [Review feedback loop](#review-feedback-loop)
+- [Halts](#halts)
+- [Ticket secrets](#ticket-secrets)
+- [Operator checklist](#operator-checklist)
+- [Prompt overrides and lessons](#prompt-overrides-and-lessons)
+- [Service connections](#service-connections)
+- [Webhook intake](#webhook-intake)
+- [Notifications](#notifications)
+- [Publish session](#publish-session)
+- [Config sharing](#config-sharing)
+- [Support bundle, crash reports, and what leaves the machine](#support-bundle-crash-reports-and-what-leaves-the-machine)
+
 ## Install or upgrade trau
 
 The binary is public and the install needs **no key** (ADR 0106):
@@ -293,6 +321,11 @@ recovery, then a deliberate re-arm. None of the recoveries arms anything by itse
      explicit go-ahead. A merged ticket needs `force`.
 4. **Re-arm** with `start_queue on_fault=halt` if the drain halted.
 
+Never stop a sibling lane to make room for `resume_run`, `requeue_ticket` or
+`retry_release`: they refuse a ticket that is itself running, not a repo where another
+ticket runs (`requeue_ticket` also refuses while the repo drains or an in-place run
+holds the checkout).
+
 Two cases need none of this: a `stopped` run just needs Start, and a row parked on
 review feedback or a human hold usually resumes itself when the person acts (§ Review
 feedback loop).
@@ -414,6 +447,14 @@ exhausts its rounds parks `awaiting-changes` rather than quarantining.
 `EPIC_STACKED_PRS=1` (off by default) swaps the epic branch for a native GitHub
 stack: layers build on live layers only, upper layers defer CI to the stack merge,
 and the heartbeat reads `layer i/n`.
+
+**Stacked epic eligibility.** `trau --list-eligible --parent <epic>` shows a stacked
+epic's eligible children; the `list_eligible` tool stays repo-wide. A blocker counts
+as satisfied by a green held layer only in the same repo and active stack, and only on
+current persisted checkpoint evidence — the config flag alone is not enough, and
+missing, stale or failed evidence keeps the blocker. Leave the tracker links in place
+and the held layers In Review: only a successful stack delivery moves them to Done.
+Epic parking applies the same rule and names the blockers that remain.
 
 ## Parallel lanes
 
@@ -561,6 +602,23 @@ the Interview and the operator write them.
   — your items carry source `operator`.
 - `update_checklist_item id=… done=true` only when the user says the step is done; it
   records this client as `done_by`. Omitted fields keep their value.
+- An item can carry a **check command** (`check="…"` on add or update; `check=""`
+  removes it): one read-only command, on one line, run from the repository root, that
+  proves the step is done. It shows on the item, and starting a check is the approval
+  to run it — never write one that changes state or holds a secret value. Changing it
+  deletes the item's Tick proposal.
+- `check_checklist_item id=…` (one item) or `check_checklist` (every open item, one
+  agent call, done items skipped) starts an **evidence check**: a headless agent runs
+  read-only commands in the project checkout and writes a **Tick proposal** —
+  `proposal_verdict` `done` / `not_done` / `cannot_tell` with `proposal_evidence`. The
+  call returns at once; read `get_checklist` until `checking` is false, then relay the
+  proposal or `check_error`. A proposal is not a tick: set `done` only on the user's
+  word.
+- `promote_checklist_item id=… title=…` files an item that is real work, not an
+  operator step, as a new ticket (or internal issue) with no label and no parent, so a
+  person triages it, and links it (`linked_ticket`). When that ticket is done the hub
+  ticks the item once, with `done_by` naming it; an untick after that keeps the item
+  open.
 - `delete_checklist_item` (destructive) removes an item for good, whoever wrote it —
   confirm first.
 
@@ -637,6 +695,18 @@ deliberate wait, not a fault.
 
 Call it *Publish*, never *release*: **Releasing** is the epic merge phase and the
 queue's `release` hold, and conflating the two makes the board unreadable.
+
+A Publish ends at the verified `latest.json` manifest: the release is out and the
+`publish` hold clears there. The trau.sh changelog then completes in a separate
+**website task** that never holds the queue. `publish_website_status` reports it
+(`pending`, `running`, `succeeded`, `failed`, with `pr_url`, `page_url` and `reason`).
+A failed website task never means the release failed — tell the user the version is
+out and only the changelog is outstanding. `retry_publish_website session_id=…` reruns
+the website work only (no gate, tag, manifest or version decision) and moves a failed
+task only, so a repeat call starts nothing new; ask the user first.
+`worker_deploy_status` answers whether the live trau-dist Worker matches `origin/main`
+(`up_to_date`, `behind` with `changed_files`, `unknown`, `unavailable`); starting a
+Worker deploy stays a hub UI click.
 
 ## Config sharing
 
