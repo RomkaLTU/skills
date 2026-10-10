@@ -20,9 +20,10 @@ takeovers as PTY sessions, per repo.
   has the fields). Name a session to the user by its `handle` — a permanent
   adjective-noun name such as `brave-otter` that the user sees beside the session name
   and a process in the session reads from `TRAU_TERMINAL_SESSION`.
-- A Claude Code or Codex agent session gets its own read-only endpoint,
+- A Claude Code, Codex or Copilot agent session gets its own read-only endpoint,
   `POST /api/v1/terminals/{id}/mcp`, with `list_terminal_sessions`,
-  `read_terminal_screen`, `list_runs`, `list_instances` and `queue_status`, and a note
+  `read_terminal_screen`, `list_runs`, `list_instances` and `queue_status`, plus
+  session-only `read_previous_conversation` for Continue, and a note
   with its handle. There `repo` defaults to the session's repo and its own row has
   `self: true`. The agent checks the other sessions and runs before it changes files,
   and asks the user when the request collides with work in progress.
@@ -86,13 +87,13 @@ something) or `resolved`.
   at `GET /api/v1/assistant/threads`. When the user asks *you* to watch a drain or clear
   a halt, use this skill's tools — the hub no longer hands out a watch or unblock prompt
   to paste into a terminal agent.
-- It reads the hub through the read tools, and runs `steer_agent`, `pause_queue`,
-  `start_queue` (halting on a fault), `move_queue_item`, `resume_run`,
-  `resume_queue_item`, `requeue_ticket` and `acknowledge_drift` on its own, posting each
-  as an action. It only *proposes* `run_queue_item`, `stop_queue_item`,
-  `stop_instance`, `retry_release`, `set_config` and `create_ticket`; the user applies or
-  declines each in the panel. `ASSISTANT_MAX_ACTIONS` (default `10`) caps the actions of
-  one Conversation; past it, it only advises until the user raises the budget.
+- Its own `trau-assistant` endpoint exposes all read tools. Reversible actions run
+  at once and appear in the Conversation history. Other allowed writes, including
+  synced-ticket description edits and comments, are proposals the user applies or
+  declines. It never receives QA approval, secret, connection removal, account
+  removal or hub restart tools. The live Assistant contract defines the full tiers;
+  an external operator must follow this skill’s authorization rules instead.
+  `ASSISTANT_MAX_ACTIONS` (default `10`) caps one Conversation’s actions.
 - **It opens Conversations itself on incidents** (ADR 0164): a run that pauses (not on
   `reauth` or `usage_window`), faults, gives up or parks its epic; a queue row the drain
   pauses; a repair stall; a hub handler panic; and three stall detectors —
@@ -144,3 +145,17 @@ record and its target path, and approves the save. The source Report and existin
 stay unchanged, and approval neither accepts nor implements the decision — nor does it
 authorize any run (that is still `settle_adr_conflict`). The hub alone writes to
 `ADR_DIR`. This is a hub UI flow with no operator MCP or CLI equivalent.
+
+## Prepare, session history and maintainer cards
+
+The Prepare page labels Interview as **Technical specification**. Business requirements
+Refine can update an existing user story. Review the Apply preview before approving;
+see `references/mcp.md` for the REST version check and partial-Apply retry rules.
+
+Previous session lists human-created hub Terminal conversations. It excludes automation
+and sessions of unknown origin, including external-terminal sessions. Continue can read
+its stored conversation through the session-only `read_previous_conversation` tool;
+this is not a hub MCP tool.
+
+The source repo’s Publish card can run a deterministic Hotfix. Demo controls and its
+private Scenarios are maintainer-only. There is no operator MCP tool to start either.

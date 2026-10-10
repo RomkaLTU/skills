@@ -139,6 +139,9 @@ asks for a supervised one-off in the terminal.
 
 ```bash
 trau doctor 2>&1                # preflight; the report goes to STDERR
+trau doctor --all              # include each passing check
+trau doctor --problems         # verdict, problems and fix commands only
+trau doctor --json             # trau.doctor/v1 report on stdout
 trau doctor --serena-health     # also start Serena's language server for a live check
                                 #   (can take a minute)
 trau --dry-run                  # the next eligible ticket, without doing anything
@@ -148,7 +151,9 @@ trau --list-epic <ID> [--json]  # an epic's sub-issues and their states
 
 Doctor opens with **one verdict line** — `✗ Blocked`, `? Run path unverified`,
 `⚠ Ready with warnings` (or `⚠ Ready with unverified optional checks`) or `✓ Ready` —
-then lists every check under three headers, `=== blocks runs ===`,
+then lists problems first in each impact group (failures, unverified, warnings),
+with passing checks collapsed to one count line (`--all` expands them). Fix commands
+are on separate lines and collected once at the end. The three impact headers are `=== blocks runs ===`,
 `=== weakens QA ===`, `=== nice to have ===`, each line `✓ / ⚠ / ✗ / ? name: message`.
 `?` means unverified, never a pass; only a blocks-runs `?` yields "Run path
 unverified". Exit is non-zero when **any** check is `✗`, optional ones included (the
@@ -577,3 +582,18 @@ Read a run through the surfaces that own it instead:
 - The hub's web **Run detail** page — the same data, rendered, including the
   transcript and the run log panel.
 - `trau watch` — the live transcript, read off the hub's transcript API.
+
+## Maintainer release recovery
+
+These commands run from the Trau source checkout and publish release state. Use only
+when the user asks for that action; they are not target-repo run recovery commands.
+
+- `make hotfix COMMIT=<full-sha> [CHANGELOG="one sentence"]`: publish one merged fix
+  on top of the advertised release, without an agent or queue hold. The Publish card
+  offers the same Hotfix action; no hub MCP tool starts it. A retry of the same commit
+  resumes it. Stopping the command does not undo a pushed tag.
+- `make yank VERSION=<bad-version>`: restore the last verified release before the bad
+  advertised release and mark that version yanked.
+
+The installer now installs the operator skill and adds Trau to PATH by default.
+`trau config describe <KEY> [--json]` reads the built-in key catalog offline.

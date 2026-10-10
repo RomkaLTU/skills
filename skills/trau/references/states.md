@@ -118,12 +118,13 @@ instead); no PR or branch left to merge. The reason string names which.
 
 How a `paused` run explains itself. The pipeline emits a short reason token; the run
 page folds these into eight kinds (`hook_rejected`, `branch_held`, `tool_unavailable`,
-`adr_conflict`, `dialog`, `reauth`, `usage_window`, `other`). The hub emits a
-copy-paste **Unblock prompt** for every kind except `reauth` and `usage_window`,
-because no amount of work clears those.
+`adr_conflict`, `dialog`, `reauth`, `usage_window`, `other`). The hub offers **Ask the Assistant** for halts; it no longer generates
+copy-paste Unblock prompts. External agents diagnose and recover with the hub tools.
 
 | Reason | What happened | What clears it |
 | --- | --- | --- |
+| `provider_locked` | The launch Provider is excluded by the license-carried Provider lock. | Pin an allowed Provider or correct the launch restriction and restart the hub. Do not resume before that. |
+| `login_required` | The login gate requires an account and the Provider is not signed in. | Sign in on the hub machine before resuming. |
 | `adr_conflict` | `ADR_POLICY`'s cold verifier read the diff as contradicting an accepted ADR the issue never authorized superseding. Reason starts `ADR conflict needs human input: ` and names the ADR paths. Not a failure. Editing the issue does **not** clear it — the verifier reads the handoff brief, not the tracker. | Only a person decides: ask the user, never decide yourself. `settle_adr_conflict decision=authorize` (`trau adr authorize <ID>`) authorizes superseding exactly those paths for the life of the ticket and resumes at verify; `decision=keep note="…"` (`trau adr keep <ID> --note "…"`) re-enters repair from the note. Either also resumes the run. Never auto-resumed. |
 | `adr_dir` | `ADR_POLICY` cannot run: `ADR_DIR` is absolute, escapes the repo or leaves it through a symlink (`ADR policy cannot run: …`). Branch and checkpoint kept. | Point `ADR_DIR` inside the repo, then resume. |
 | `local_merge_blocked` | A remote-less repo's local squash-merge is held: the checkout holding the base is on another branch or detached, mid-merge/rebase, has staged changes, or has uncommitted paths the ticket branch also writes (`the local merge into <base> is held …`, ADR 0097). Nothing in that checkout was changed. | That work is the user's — tell them; never commit, move or discard it yourself. `resume_run` checks again. |

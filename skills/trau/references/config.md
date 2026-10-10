@@ -145,7 +145,7 @@ line (see Worktrees). A ticket that vanished from every pull may be tombstoned:
 
 | Key | Meaning |
 | --- | --- |
-| `PROVIDER` | `claude` (default, the battle-tested path) \| `codex` \| `kimi` \| `auggie` (ADR 0061). Fixed per ticket once a run starts. |
+| `PROVIDER` | `claude` (default, the battle-tested path) \| `codex` \| `kimi` \| `auggie` \| `copilot`. Fixed per ticket once a run starts. |
 | `AUTO_MERGE` | `1` (default) = merge on green CI; `0` = stop at the open PR for a human (`awaiting-merge`). Merge-affecting: team drift on it blocks the drain. |
 | `MERGE_METHOD` | How green PRs land (e.g. squash). `DETERMINISTIC_COMMIT=1` (default) writes a templated Conventional Commit on squash repos. |
 | `EPIC_FLOW` | `1` (default) = sub-issues run on an epic branch; parent closes via an epic-to-base PR. `0` refuses `enqueue` of an epic. |
@@ -162,7 +162,7 @@ line (see Worktrees). A ticket that vanished from every pull may be tombstoned:
 | `ADR_POLICY` / `ADR_DIR` | `1` / `docs/adr`. Interviews, planning, build and every repair path consult the repo's ADRs and record new durable decisions; cold verify must return a structured ADR result and **fails the verdict** on a missing ADR or a missing/malformed result, whatever `VERIFY_CHECKS` or `VERIFY_EFFORT` say. A diff contradicting an accepted ADR the issue does not authorize **pauses** the run (`ADR conflict needs human input: …`) until a person settles it with `settle_adr_conflict` / `trau adr authorize\|keep` — editing the issue does not clear it. `ADR_DIR` must stay inside the repo; a bad one pauses the run (`ADR policy cannot run: …`). `0` drops the instructions and the gate. |
 | `COMMIT_TEMPLATE` / `PR_TITLE_TEMPLATE` / `BRANCH_TEMPLATE` | Full-control message and name formats; empty = trau's own (`feature/{{.Ticket}}-{{.Slug}}`). A `BRANCH_TEMPLATE` without `{{.Ticket}}` or `{{.ID}}` refuses the config load, and so does any template naming an unknown placeholder. |
 | `PR_BODY_TEMPLATE_FILE` | Path (relative to the PR's repo root) to a Markdown `text/template` for PR bodies. A missing, empty or unrenderable file **fails the run** — there is no fallback to the built-in body. |
-| `CLAUDE_DISALLOWED_TOOLS` | `Agent,Workflow,Bash(git push:*),Bash(gh pr create:*)` — delivery commands blocked in every claude phase (the loop delivers, not the agent). Per-phase `CLAUDE_<PHASE>_DISALLOWED_TOOLS`. Codex/Kimi/Auggie have no deny list; the prohibition is prompt-only there. |
+| `CLAUDE_DISALLOWED_TOOLS` | `Agent,Workflow,Bash(git push:*),Bash(gh pr create:*)` — delivery commands blocked in every claude phase (the loop delivers, not the agent). Per-phase `CLAUDE_<PHASE>_DISALLOWED_TOOLS`. Codex/Kimi/Auggie/Copilot have no deny list; the prohibition is prompt-only there. |
 
 The pick gate and `PICK_ROUNDS` no longer exist (ADR 0059).
 
@@ -171,7 +171,7 @@ The pick gate and `PICK_ROUNDS` no longer exist (ADR 0059).
 | Key | Meaning |
 | --- | --- |
 | `AI_ASSESSMENT` | `0` (default). **Hub-wide**, user layer or hub environment only, needs an active license key. The one consent for the Trau assessment service: Complexity badges and readiness signals, lesson classification and recall, skill relevance, grill question checks, duplicate and split checks of proposed tickets, repair-stall checks. On, the hub sends ticket titles, descriptions and comments with the titles, descriptions and statuses of each ticket's sub-issues, verify failure evidence, recalled lessons, package signals, grill questions, and each Interview proposal's ticket text with its proposed hierarchy (the service does not retain them). The split check runs before an Interview proposal's review: a proposed ticket that holds independent work no other proposed ticket covers sends the Interview agent back for one revision, and any advice left shows beside that ticket — it never blocks a create. No answer changes a pick or the Queue order. The retired per-feature assessment keys do nothing. |
-| `MODELS_BY_COMPLEXITY` | `0` (default, per repo, needs `AI_ASSESSMENT`). A ticket with a usable Complexity score runs under the saved Preset its band maps to — `COMPLEXITY_LOW_PRESET` / `_MEDIUM_PRESET` / `_HIGH_PRESET`, mapped on the Models page and looked up inside the run's Provider. The band is fixed at ticket start; no score, no mapping or no such Preset keeps the configured Routes. Ticket text never names a Model. Turning it on for a claude or codex repo seeds missing `Complexity low` / `Complexity high` Presets into empty band keys. Run log: `complexity 7 -> band high -> Preset "deep"`. |
+| `MODELS_BY_COMPLEXITY` | `0` (default, per repo, needs `AI_ASSESSMENT`). A ticket with a usable Complexity score runs under the saved Preset its band maps to — `<PROVIDER>_COMPLEXITY_LOW_PRESET` / `_MEDIUM_PRESET` / `_HIGH_PRESET`, mapped on the Models page and looked up inside the run's Provider. The band is fixed at ticket start; no score, no mapping or no such Preset keeps the configured Routes. Ticket text never names a Model. Turning it on for a claude or codex repo seeds missing `Complexity low` / `Complexity medium` / `Complexity high` Presets into empty band keys. Run log: `complexity 7 -> band high -> Preset "deep"`. |
 | `COMPLEXITY_LOW_MAX` / `COMPLEXITY_HIGH_MIN` | `3` / `7` — band limits on the 1–10 score; an invalid pair falls back to 3 and 7 with a warning. |
 | `COMPLEXITY_ESCALATE_AFTER` | `2` (`0` = off; needs only `MODELS_BY_COMPLEXITY`). After that many failed verify rounds every later agent call of the ticket runs one band higher, capped at high; no band counts as medium. Survives a resume. `trau --complexity-band <band>` (or `band` on a Queue add) pins one run's band without sending ticket text. |
 
@@ -190,7 +190,7 @@ Three things to know before reading a number: the **per-day totals also count th
 hub's own sessions** — interviews, challengers, publish, atlas — because they
 bill to the same ledger. On a worktree repo, where every eligible ticket can run at
 once, these caps are the *only* throughput throttle. And **the USD caps never fire on
-auggie** (it reports tokens and credits, no `cost_usd`; kimi has no price either) —
+auggie or copilot** (they report tokens and credits, no `cost_usd`; kimi has no price either) —
 set the token caps there.
 
 With `MAX_BUGFIXES` unlimited by default, the budget caps are also what bounds a run
@@ -217,7 +217,7 @@ one; `trau forensics spend <ID>`, `get_costs` and `trau --status` show the numbe
 
 | Key | Meaning |
 | --- | --- |
-| `WORKTREES` | `0` (default) = one checkout, serial drain. `1` = each queued run gets its own worktree, branch, and PR — and **every eligible queued ticket runs at once**, with no lane cap (ADR 0047). On a **folder repo** it means: a ticket whose description opens with `Repo: <child>[, <child>…]` runs in a lane holding one linked worktree per declared child, isolated lanes are unlimited too, and a ready ticket with **no** `Repo:` line is refused before any agent call. |
+| `WORKTREES` | `0` = one checkout, serial drain. `1` (default) = each queued run gets its own worktree, branch, and PR — and **every eligible queued ticket runs at once**, with no lane cap (ADR 0047). On a **folder repo** it means: a ticket whose description opens with `Repo: <child>[, <child>…]` runs in a lane holding one linked worktree per declared child, isolated lanes are unlimited too, and a ready ticket with **no** `Repo:` line is refused before any agent call. |
 | `WORKTREES_DIR` | Where the trees live: `<WORKTREES_DIR>/<repo-name>/<ticket-id>` (folder lanes add `/<child>`); defaults to `<TRAU_HOME>/worktrees` (`TRAU_HOME` itself defaults to `~/.trau`). It must not sit inside a registered repo. |
 | `WORKTREE_COPY` | `.env,.env.*` — gitignored globs copied into a fresh tree (on top of the unconditional set: `.trau/`, `.gitconfig.repo`, untracked `.agents/`, `.serena/` project + memories, the skills mirror). Replaced by `worktree.yaml` `copy:` when present. |
 | `WORKTREE_SETUP_CMD` | Runs in each fresh tree (e.g. `npm ci`) under the host shell. Replaced by `worktree.yaml` `setup:` when present. Caches and search indexes the trees would share are still this command's to separate; **ports and the database are not** — the hub allocates ports and copies the database before it runs. A non-zero exit parks the run faulted with its output kept as a `worktree-setup` artifact and the tree left standing as evidence. Folder lanes resolve it per child. |
@@ -332,3 +332,27 @@ File-based sharing through `.trau/config.team.ini` and its drift checks is unaff
 control the ride-along notes trau leaves on a ticket at delivery, at quarantine and
 at reset. Turning one off silences the note only — the status move and the label
 swap still happen.
+
+## Additional controls in the current binary
+
+Use `trau config describe <KEY> [--json]` for current defaults, valid options and the
+full contract. Phase Models and efforts change across releases; do not copy an old
+Model default into a new repo.
+
+| Key | Meaning |
+| --- | --- |
+| `COPILOT_BIN` / `COPILOT_FLAGS` / `COPILOT_MODE` | Fifth Provider, GitHub Copilot CLI. Mode `print` (default) is headless and takes steer notes at the next spawn; `pty` permits mid-phase steering. Flags default to `--allow-all`, which removes tool, path and URL approval prompts. |
+| `COPILOT_MODEL` / `COPILOT_<PHASE>_MODEL` / `_EFFORT` | Empty Model resolves to `auto`; explicit Model IDs are accepted. Per-phase Routes override the Provider Model. |
+| `COPILOT_MAX_AI_CREDITS` | Per-call AI credit cap; `0` means no cap, otherwise at least `30`. Copilot reports premium requests and AI credits, never USD; USD caps do not constrain it. |
+| `ALLOWED_PROVIDERS` | Provider lock from the signed license entitlement. Environment and launch flags can narrow it only. A stored config value is ignored; a change needs a hub restart. A denied Provider pauses `provider_locked`. |
+| `REQUIRE_PROVIDER_LOGIN` | License-carried login gate; the environment can enable it only. A stored value is ignored. No signed-in account pauses `login_required`; sign in before resuming. |
+| `BENCHMARK` | `off` / `suggest` / `require`: Performance budget detection and verification. Measurements are available through `get_artifact kind=benchmark`. |
+| `<PROVIDER>_COMPLEXITY_<LOW|MEDIUM|HIGH>_PRESET` | Each Provider owns its mapping from Complexity band to a Preset. Use that Provider’s Preset names. |
+| `JIRA_DEPLOYMENT` | `cloud` / `datacenter`. Data Center uses a personal access token in `JIRA_API_TOKEN` and `JIRA_BASE_URL`; no email or OAuth connection. |
+| `GITLAB_TOKEN` / `GITLAB_HOSTS` | Secret user-layer token for GitLab delivery, with a self-hosted host allowlist. A private host must be listed or declared with child `FORGE=gitlab`; otherwise the run is refused. No GitLab connection. |
+| `TLS_CA_FILE` / `TLS_INSECURE_SKIP_VERIFY` | User-layer PEM CA file for self-hosted forge/tracker TLS. Skip verification (`1`) is a stopgap and produces a doctor warning on every run. |
+
+A Folder child’s own `BASE_BRANCH` wins. Next comes the Folder’s explicitly set base
+when the child remote publishes it, then the remote default, then the Folder base.
+If the remote cannot answer, the explicitly set Folder base stands. `get_run` records
+`base_branch`, `remote_default_branch` and per-child `ships` for delivery diagnosis.

@@ -1,12 +1,13 @@
 ---
 name: trau
-version: 1.4.0
+metadata:
+  version: "1.5.0"
 description: >-
-  Operate Trau — the autonomous, ticket-driven development loop (trau.sh) — from any
-  agent with a shell or an MCP client: file, search and queue tickets, arm or pause the
+  Operate Trau — the autonomous, ticket-driven development loop (trau.sh) — from a
+  shell or MCP client: file, search and queue tickets, arm or pause the
   queue drain, watch and steer live runs, answer a QA hold, settle an ADR conflict,
-  read run evidence and spend, diagnose failed or quarantined runs, hand a run a
-  secret, work a ticket's operator checklist, set config and prompt overrides, manage
+  read evidence and spend, diagnose failed or quarantined runs, hand a run a
+  secret, work a ticket's operator checklist, set config, manage
   QA sign-in accounts, tracker connections and the local web hub. Use whenever the
   user mentions trau, the trau hub, queue, drain, babysitting a drain, steering a run,
   a quarantined, parked, awaiting-qa or needs-human ticket, `trau doctor`,
@@ -25,11 +26,11 @@ Trau (https://trau.sh) is a single Go binary that runs an autonomous development
 it pulls the next ready issue from a tracker (Linear, Jira, Azure DevOps, GitHub
 Issues, or its own internal store) and drives it through **build → handoff → verify →
 commit → PR → CI → (review) → (QA hold) → merge**, one fresh agent process per phase,
-on one of four providers (`claude`, `codex`, `kimi`, `auggie`). A local **web hub**
+on one of five providers (`claude`, `codex`, `kimi`, `auggie`, `copilot`). A local **web hub**
 (`http://127.0.0.1:8728` by default) exposes a web UI, a JSON API under `/api/v1`, and
 an MCP server at `/api/v1/mcp`.
 
-This skill is written against **trau v2.72.0** (main at 2026-10-02). Check
+This skill is written against **trau v4.3.0 + main through `dfb638142`** (audited 2026-10-10). Check
 `trau --version` or the `version` field of `GET /api/v1/health`; a hub reporting
 something older may lack a tool or gate named here, and **2.39.0 or lower means a
 frozen Homebrew/Scoop/winget install** that needs the installer (below). The binary
@@ -93,7 +94,8 @@ The core workflow, end to end (MCP tool names; CLI equivalents in
    `QA_GATE`.
 4. `start_queue` with `on_fault` set to `halt` or `skip` — arm the drain. A repo with
    `WORKTREES=1` runs **every eligible queued ticket at once**, one new spawn per
-   drain tick; a serial repo runs one at a time. The throttles are the spend caps
+   drain tick; a serial repo runs one at a time. Worktrees are enabled by default.
+   The throttles are the spend caps
    and the worktree setup step. A refusal naming drifted merge-affecting keys
    (`AUTO_MERGE` / `REVIEW_GATE` / `REQUIRE_CI`) is **team-config drift**: relay both
    values to the user, and call `acknowledge_drift` only on their answer.
@@ -134,8 +136,8 @@ reads.
   `restore_ticket`, `archive_ticket`, `reset_run`, `requeue_ticket`, `clear_run`,
   `retry_release`, `advance_run`, `stop_instance`, `stop_queue_item`, `stop_queue`,
   `restart_hub`, `reveal_secret`, `unset_ticket_secret`, `delete_checklist_item`,
-  `qa_accounts_remove`, `remove_connection`, `set_prompt_override`,
-  `clear_prompt_override`, and every `trau --reset` / `--requeue` / `--resume`. A
+  `qa_accounts_remove`, `remove_connection`, `comment_ticket`, `do_checklist_item`,
+  and every `trau --reset` / `--requeue` / `--resume`. A
   babysitting brief the user pasted is the go-ahead for exactly what it lists, nothing
   more.
 - **Arming a drain is a spend decision** — each ticket costs real provider tokens,
@@ -147,7 +149,7 @@ reads.
 - **Some decisions are never yours.** The QA verdict (`approve_qa` / `reject_qa`),
   an ADR conflict (`settle_adr_conflict` — `authorize` or `keep` with a note), and a
   drift acknowledgement belong to the user: ask, then send only their answer. Turn on
-  `AI_ASSESSMENT`, `EXPERIMENTAL_*` or `TWG_ENABLED`, or set a prompt override, only
+  `AI_ASSESSMENT`, `EXPERIMENTAL_*` or `TWG_ENABLED` only
   when the user asks — each changes what leaves the machine or every later agent call.
 - **A held queue is not a hung queue.** `queue_status` reports `held`,
   `held_reason`, `held_since` **and** `held_gate`, and the gate tells a wait from a
@@ -166,6 +168,9 @@ reads.
   `stop_queue_item` holds one row; `resume_queue_item` releases that hold only — it is
   not `resume_run`. Editing labels by hand never revives a quarantined ticket.
   `reset_run` last, and only with the user.
+- A `provider_locked` pause needs an allowed Provider pin or a corrected launch lock.
+  A `login_required` pause needs provider sign-in. Do not resume either until its cause
+  is fixed.
 - **Quarantine means the run gave up, not that the ticket is cursed.** With
   `MAX_BUGFIXES` unlimited by default, the usual causes are review rounds exhausted,
   CI red after repairs, a closed PR, unsyncable conflicts or a budget cap. A
@@ -226,10 +231,13 @@ reads.
 | "Is this skill up to date?" | `trau skill check`, then `trau skill install` with the user's OK |
 | "The run needs an API key" | `set_ticket_secret` (or `trau secret set <ID> NAME` via stdin), then `resume_run` if the run already settled |
 | "Change a setting" | `get_config`, then `set_config` / `trau config set KEY=VALUE` (validated; unknown keys refused) |
-| "Change how an agent is prompted" | `list_prompts`, then `set_prompt_override` with a template the user approved |
+| "Change how an agent is prompted" | Prompts are built in; changes require a Trau release. Use config and lessons for supported operator controls |
 | "What does a person still have to do?" | `get_checklist` (`include_children=true` on an epic); tick with `update_checklist_item done=true` only when the user says it's done |
-| "Has that manual step been done?" | `check_checklist_item` / `check_checklist` start an evidence check; poll `get_checklist`, relay the Tick proposal — never tick from it |
-| "This checklist item is real work" | `promote_checklist_item` files it as a ticket and links it |
+| "Has that manual step been done?" | `check_checklist_item` / `check_checklist` start an evidence check; poll `get_checklist`, report automatic ticks and relay reasons and manual steps for items that stay open |
+| "Do this manual checklist step" | `do_checklist_item` when the user asks; requires `needs_code=false`, may write, and automatically ticks a proven result |
+| "This checklist item needs code" | `promote_checklist_item` files it as a ticket and links it |
+| "Hold this ticket on another repo’s ticket" | `block_ticket blocker="ID (repo)"`; both repos must be in the same Workspace |
+| "Edit a synced ticket’s text" | `update_ticket description=… base_description=…`; other fields are refused. `comment_ticket` posts a comment |
 | "What is my dev server / that terminal printing?" | `list_terminal_sessions`, then `read_terminal_screen` (by `handle`) |
 | "The ticket is waiting on the App" | It waits for the App session that holds the checkout; ask the user to stop the app or turn on worktrees (`references/hub-features.md`) |
 | "What did the Assistant say?" | `GET /api/v1/assistant/threads`; the Assistant is not yours to drive |
@@ -253,6 +261,7 @@ Read these on demand — each is self-contained for its area:
   `tools/list` declares, grouped read / control / steer / destructive — the REST
   fallback, and worked examples (diagnose, recover, QA hold, secrets, connections).
   Read when setting up a connection or before first use of a tool you haven't called.
+  The live `tools/list` descriptions supply the full contracts.
 - `references/cli.md` — the complete CLI: install / license / update, run modes and
   flags, inspection, forensics, `watch` / `steer` / `takeover`, recovery (`--resume`,
   `--requeue`, `trau adr`), `config get|set|export|import`, `secret …`, QA accounts
@@ -264,7 +273,7 @@ Read these on demand — each is self-contained for its area:
   an armed drain (confirmation discipline and hard stops), diagnosing a settled
   failure, the recovery ladder, QA hold / accounts / proofs, hub lifecycle and
   exposure, epics, parallel lanes, the review loop, halts, ticket secrets, the
-  operator checklist, prompt overrides and lessons, service connections, webhook
+  operator checklist, built-in prompts and lessons, service connections, webhook
   intake, notifications, Publish sessions, config sharing, and what leaves the
   machine. Read when performing the matching operation.
 - `references/states.md` — the vocabulary tables: queue item statuses, hold gates
