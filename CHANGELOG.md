@@ -175,6 +175,72 @@
 
 ## trau
 
+### 1.6.0
+- **Re-documented against trau v11.7.0** (main through `679148f1b`, 2026-10-29;
+  1.5.0 described v4.3.0). Every command, tool, key, state, gate and class was
+  re-checked against the binary's help, the config catalog, the hub source and the
+  ADRs added since then (0241–0352).
+- **Cobble is the display name.** The hub UI, TUI and notifications say Cobble.
+  Commands, keys, paths and URLs keep `trau`, and the skill now triggers on either
+  name.
+- **`DELIVERY` replaces `AUTO_MERGE`, `QA_GATE` and `REVIEW_GATE`.** `automerge`
+  (the default) merges green PRs. `stop` holds a run at its PR (`awaiting-qa`)
+  until someone approves, rejects, comments or merges on the forge. The verify-gate
+  holds (`browser_not_driven`, `input_not_supplied`) apply under `stop` only. A
+  queue item's `delivery` field replaces `qa_gate`. Team drift now covers
+  `DELIVERY` and `REQUIRE_CI`.
+- **The hub MCP grew from 85 to 98 tools**, and `mcp.md` lists every one:
+  - `discard_run`, `reverify_run`, `switch_provider`, `list_provider_readiness`;
+  - `waive_checklist_item`, `app_urls_detect`, `get_interview_artifact`;
+  - `list_lesson_promotions`, `apply_lesson_promotion`, `dismiss_lesson_promotion`;
+  - `calibration_report`, `list_calibration_proposals`, `decide_calibration_proposal`;
+  - `repository_refresh_status`, `retry_repository_refresh`.
+
+  `publish_website_status` and `retry_publish_website` are gone (ADR 0289).
+- **New CLI surface.**
+  - Recovery: `--discard`, `--reverify` / `trau run reverify`, `trau checklist waive`.
+  - Setup and tooling: `trau tools install|status`, `trau serena trust`,
+    `trau app-urls detect`, `trau connect github` (with `--device`).
+  - Hosted: `trau collaborators add|revoke|list`, `trau hosted status|setup|deploy`.
+  - Config: `trau config list|describe|unset`.
+  - Hub and run flags: `trau hub start --open`, Windows supervision,
+    `--provider deepseek`, `--allowed-providers`, `--complexity-band`, `--delivery`.
+  - Removed: `--qa-gate` and `--no-qa-gate`. The `--skip` keys `review` and `merge`
+    are now refused.
+- **Recovery ladder:** resume → requeue → reset → discard. Discard is the one forced
+  teardown. It keeps unmerged verified commits under `refs/trau/lost/` and marks the
+  ticket `needs-human`.
+- **New failure classes and pause reasons**, each with what the operator must
+  wait for: `repair_loop`, `push_refused`, `connection_lost`, `ci_unreadable`,
+  `github_app_not_installed`, `provider_not_ready`. A pending CI check never
+  quarantines. A repeated verify failure pauses the run.
+- **New safety rules:**
+  - The outdated-hub lock: no new agent work 8 hours after a newer release appears.
+  - The `AUTO_UPDATE` restart hold (`held_gate: update`) clears by itself.
+  - Calibration proposals, lesson promotions, checklist waivers and Interview
+    deviations are the user's decisions.
+  - `SENTRY_MODE=auto`, `TEAM_SYNC` and `CALIBRATION_AUTO_APPLY` are set only on the
+    user's word.
+  - Hosted Collaborators are never handed the operator token.
+- **Config:** `DELIVERY`, `CONFORMANCE`, `LESSONS_DISTILL`, `TEAM_SYNC`,
+  `CALIBRATION_AUTO_APPLY`, `AUTO_UPDATE`, `CI_PENDING_TIMEOUT`, `DOCS_POLICY`,
+  `OUTPUT_LANGUAGE`, `SENTRY_*`, `SUPABASE_LANE*`, `WORKTREE_HOSTS` / `APP_HOSTS`,
+  `AZURE_TAGS` / `AZURE_HOSTS`, `DEEPSEEK_*`, the per-phase `_CONFORMANCE_` /
+  `_DISTILL_` / `_TASK_ORDER_` routes, the hosted keys, and the sealing keys.
+  Retired keys are marked with their replacement: `EPIC_FLOW`, every `*_LINTFIX_*`,
+  `COMPLEXITY_*_PRESET`, `BROWSER_HARNESS` and `WEB_LAYOUT`.
+- **`hub-features.md`:**
+  - The Assistant section is rewritten: it proposes every write and starts only
+    when the user starts it.
+  - New sections: Monitoring (Sentry), calibration, lessons and team sync,
+    conformance results, hosted mode and collaborators, prototypes, backlog goals,
+    and the Demo.
+
+### 1.5.0
+- Aligned with trau v4.3.0: Copilot, checklist execution, cross-repo blockers and
+  GitLab delivery. Removed the retired prompt tools, and corrected the worktree
+  defaults and the recovery guidance.
+
 ### 1.4.0
 - **Re-documented against trau v2.72.0** (main at 2026-10-02). The hub MCP grew
   from 75 to 85 tools, and `mcp.md` now lists every one:
