@@ -175,6 +175,9 @@
 
 ## trau
 
+### 23.0.0
+- Sync the operator skill with trau v23.0.0.
+
 ### 1.6.0
 - **Re-documented against trau v11.7.0** (main through `679148f1b`, 2026-10-29;
   1.5.0 described v4.3.0). Every command, tool, key, state, gate and class was
